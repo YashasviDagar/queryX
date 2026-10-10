@@ -19,10 +19,13 @@ from ..ir import nodes as ir
 from ..ir.expr import ExprContext, combine_and, conjuncts, referenced_sources, render
 from ..cost.logical import estimate_ir_rows
 from ..cost.cardinality import CardinalityEstimator
+from ..cost.model import CostEstimator
 from .physical import PhysicalNode
 
 _JOIN_ALGORITHMS = ["HashJoin", "NestedLoopJoin", "MergeJoin"]
 _PREFIX_OPS = (ir.Project, ir.Distinct, ir.Sort, ir.Limit, ir.Aggregate)
+# Subset DP visits 2^n subsets; beyond this many relations fall back to heuristic orders.
+_DP_MAX_RELATIONS = 8
 
 
 @dataclass
@@ -53,6 +56,7 @@ class PhysicalPlanGenerator:
         self.config = config
         self.expr = expr_ctx
         self.cardinality = CardinalityEstimator(stats, config, expr_ctx)
+        self.estimator = CostEstimator(stats, config, expr_ctx)
 
     # -- entry point ---------------------------------------------------------
     def generate(self, root: ir.IRNode) -> list[PlanCandidate]:
@@ -62,6 +66,9 @@ class PhysicalPlanGenerator:
         if isinstance(core, ir.Join):
             relations, predicates = self._flatten(core)
             orders = self._join_orders(relations)
+            best = self._dp_join_order(relations, predicates)
+            if best is not None and [id(r) for r in best] not in [[id(r) for r in o] for o in orders]:
+                orders.append(best)
             scan_modes = self._scan_modes(relations)
             for order in orders:
                 for algorithm in _JOIN_ALGORITHMS:
@@ -120,6 +127,49 @@ class PhysicalPlanGenerator:
         if [self._source(r) for r in reordered] != [self._source(r) for r in as_written]:
             orders.append(reordered)
         return orders
+
+    def _dp_join_order(
+        self, relations: list[ir.IRNode], predicates: list[ast.Node]
+    ) -> Optional[list[ir.IRNode]]:
+        """Selinger-style dynamic programming over left-deep join orders.
+
+        Finds the order with the lowest estimated cost for hash joins over sequential
+        scans, by extending the cheapest plan for each subset of relations one relation
+        at a time. Returns ``None`` when there is nothing to choose between.
+        """
+        n = len(relations)
+        if n < 3 or n > _DP_MAX_RELATIONS:
+            return None
+        sources = [self._relation_sources(r) for r in relations]
+        best: dict[int, tuple[float, list[int]]] = {}
+        for i in range(n):
+            best[1 << i] = (self._subset_cost([i], relations, predicates, sources), [i])
+        for mask in range(1, 1 << n):
+            if mask.bit_count() < 2:
+                continue
+            options = []
+            for i in range(n):
+                prefix_mask = mask ^ (1 << i)
+                if not mask & (1 << i) or prefix_mask not in best:
+                    continue
+                order = best[prefix_mask][1] + [i]
+                options.append((self._subset_cost(order, relations, predicates, sources), order))
+            if options:
+                best[mask] = min(options, key=lambda option: option[0])
+        return [relations[i] for i in best[(1 << n) - 1][1]]
+
+    def _subset_cost(
+        self,
+        order: list[int],
+        relations: list[ir.IRNode],
+        predicates: list[ast.Node],
+        sources: list[set[str]],
+    ) -> float:
+        members = [relations[i] for i in order]
+        member_sources: set[str] = set().union(*(sources[i] for i in order))
+        applicable = [p for p in predicates if referenced_sources(p, self.expr) <= member_sources]
+        tree = self._build_join_tree(members, applicable, "HashJoin", "seq")
+        return self.estimator.estimate(tree).estimated_cost
 
     def _scan_modes(self, relations: list[ir.IRNode]) -> list[str]:
         modes = ["seq"]
