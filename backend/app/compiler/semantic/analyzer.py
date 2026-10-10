@@ -310,6 +310,23 @@ class SemanticAnalyzer:
             found.extend(self._collect_columns(node.right))
         return found
 
+    def _columns_outside_aggregates(self, node: Optional[ast.Node]) -> list[ast.Column]:
+        """Columns referenced directly, i.e. not inside an aggregate's arguments."""
+        found: list[ast.Column] = []
+        if node is None:
+            return found
+        if isinstance(node, ast.FunctionCall):
+            if node.name in _AGGREGATES:
+                return found
+            for a in node.args:
+                found.extend(self._columns_outside_aggregates(a))
+        elif isinstance(node, ast.Column):
+            found.append(node)
+        elif isinstance(node, (ast.BinaryExpression, ast.Comparison, ast.LogicalExpression)):
+            found.extend(self._columns_outside_aggregates(node.left))
+            found.extend(self._columns_outside_aggregates(node.right))
+        return found
+
     # -- main ----------------------------------------------------------------
     def analyze(self, query: ast.Query) -> SemanticResult:
         # 1. Build scope from FROM + JOINs
@@ -374,6 +391,21 @@ class SemanticAnalyzer:
                 if resolved:
                     group_keys.add(resolved.qualified)
 
+        # 4b. HAVING: aggregates are allowed, plain columns must be grouped
+        grouping_context = query.having is not None or bool(group_keys)
+        if query.having and query.having.condition is not None:
+            having_condition = query.having.condition
+            self._type_of(having_condition)
+            for col in self._columns_outside_aggregates(having_condition):
+                resolved = self._resolve(col)
+                if resolved and resolved.qualified not in group_keys:
+                    self._err(
+                        "SEM018",
+                        f"Column '{resolved.qualified}' in HAVING must appear in GROUP BY or be used in an aggregate function.",
+                        col,
+                        suggestion=f"Add '{resolved.qualified}' to GROUP BY or wrap it in an aggregate.",
+                    )
+
         # 5. SELECT list
         output_columns: list[OutputColumn] = []
         select = query.select
@@ -414,7 +446,7 @@ class SemanticAnalyzer:
                             )
                         )
                         # aggregate/group-by validation
-                        if (has_aggregate or group_keys) and resolved.qualified not in group_keys:
+                        if (has_aggregate or grouping_context) and resolved.qualified not in group_keys:
                             self._err(
                                 "SEM016",
                                 f"Column '{resolved.qualified}' must appear in the GROUP BY clause or be used in an aggregate function.",
