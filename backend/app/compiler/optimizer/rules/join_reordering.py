@@ -33,9 +33,9 @@ class JoinReordering(Rule):
             if len(relations) > 1:
                 estimator = ctx.cardinality
                 ordered = sorted(relations, key=lambda r: estimate_ir_rows(r, estimator))
-                original_sources = [self._source(r) for r in relations]
                 ordered_sources = [self._source(r) for r in ordered]
-                if original_sources != ordered_sources:
+                # Compare by identity: outer-join subtrees share a generic label.
+                if [id(r) for r in ordered] != [id(r) for r in relations]:
                     rebuilt = build_left_deep_join(ordered, predicates, ctx.expr)
                     findings.append(
                         RuleFinding(
