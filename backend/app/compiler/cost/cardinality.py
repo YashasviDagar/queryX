@@ -105,7 +105,13 @@ class CardinalityEstimator:
         rows = input_rows * self.predicate_selectivity(condition)
         return max(self.config.min_rows, rows)
 
-    def join_rows(self, left_rows: float, right_rows: float, condition: Optional[ast.Node]) -> float:
+    def join_rows(
+        self,
+        left_rows: float,
+        right_rows: float,
+        condition: Optional[ast.Node],
+        join_type: str = "INNER",
+    ) -> float:
         selectivity = 1.0
         for predicate in conjuncts(condition):
             if isinstance(predicate, ast.Comparison):
@@ -113,6 +119,9 @@ class CardinalityEstimator:
             else:
                 selectivity *= self.config.default_selectivity
         rows = left_rows * right_rows * selectivity
+        if join_type == "LEFT":
+            # Every left (preserved) row appears at least once, null-extended if unmatched.
+            rows = max(rows, left_rows)
         return max(self.config.min_rows, rows)
 
     def aggregate_groups(
