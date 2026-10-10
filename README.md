@@ -260,8 +260,10 @@ candidate plus a ranked comparison.
   `RIGHT` joins are parsed but rejected during semantic analysis with diagnostic `SEM017`
   (rewrite as a `LEFT` join). `LEFT` joins are optimized, but the join-order search only
   reorders inner joins; an outer join is kept as a single relation.
-- Selectivity uses simple uniformity/independence assumptions (no histograms). `HAVING`
-  predicates use the default selectivity, since statistics do not describe aggregate values.
+- Selectivity uses uniformity/independence assumptions. Range predicates interpolate between
+  each column's recorded min and max, but there are no histograms, so skewed distributions are
+  estimated as uniform. `HAVING` predicates use the default selectivity, since statistics do not
+  describe aggregate values.
 - Cost constants are illustrative, not calibrated to a real engine.
 - Join enumeration only covers left-deep trees. Joins over 8 relations fall back to the
   as-written and cardinality-sorted orders, since the DP search is exponential in relation count.
