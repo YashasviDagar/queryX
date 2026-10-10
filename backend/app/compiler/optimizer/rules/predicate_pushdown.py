@@ -51,14 +51,18 @@ class PredicatePushdown(Rule):
             left_sources = referenced_sources_ir(left, ctx)
             right_sources = referenced_sources_ir(right, ctx)
 
+            # For a LEFT join only the preserved (left) side may be filtered early. A
+            # predicate on the right side, or one spanning both sides, decides which
+            # left rows are null-extended, so moving it would change the result.
+            outer = node.join_type == "LEFT"
             left_preds, right_preds, join_preds, stay = [], [], [], []
             for pred in predicates:
                 refs = referenced_sources(pred, ctx.expr)
                 if refs and refs <= left_sources:
                     left_preds.append(pred)
-                elif refs and refs <= right_sources:
+                elif refs and refs <= right_sources and not outer:
                     right_preds.append(pred)
-                elif refs and (refs & left_sources) and (refs & right_sources):
+                elif refs and (refs & left_sources) and (refs & right_sources) and not outer:
                     join_preds.append(pred)
                 else:
                     stay.append(pred)
@@ -88,8 +92,12 @@ class PredicatePushdown(Rule):
                 metric_label = "rows entering the join"
             else:
                 impact = {
-                    "estimatedRowsBefore": round(estimator.join_rows(left_before, right_before, node.condition), 2),
-                    "estimatedRowsAfter": round(estimator.join_rows(left_after, right_after, condition), 2),
+                    "estimatedRowsBefore": round(
+                        estimator.join_rows(left_before, right_before, node.condition, node.join_type), 2
+                    ),
+                    "estimatedRowsAfter": round(
+                        estimator.join_rows(left_after, right_after, condition, node.join_type), 2
+                    ),
                 }
                 metric_label = "rows leaving the join"
 
