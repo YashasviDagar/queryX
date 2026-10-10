@@ -12,6 +12,7 @@ select_stmt    := SELECT [ DISTINCT ] select_list
                   FROM table_ref { join_clause }
                   [ where_clause ]
                   [ group_by_clause ]
+                  [ having_clause ]
                   [ order_by_clause ]
                   [ limit_clause ] ;
 
@@ -27,6 +28,8 @@ join_clause    := [ INNER ] JOIN table_ref ON expression
 where_clause   := WHERE expression ;
 
 group_by_clause:= GROUP BY column_ref { "," column_ref } ;
+
+having_clause  := HAVING expression ;
 
 order_by_clause:= ORDER BY order_item { "," order_item } ;
 order_item     := column_ref [ ASC | DESC ] ;
@@ -66,8 +69,8 @@ literal        := integer | float | string ;
 
 ## Supported keywords
 
-`SELECT, DISTINCT, FROM, WHERE, INNER, LEFT, RIGHT, OUTER, JOIN, ON, GROUP, BY, ORDER, ASC,
-DESC, LIMIT, AND, OR, NOT, AS`
+`SELECT, DISTINCT, FROM, WHERE, INNER, LEFT, RIGHT, OUTER, JOIN, ON, GROUP, BY, HAVING, ORDER,
+ASC, DESC, LIMIT, AND, OR, NOT, AS`
 
 ## Supported functions
 
@@ -86,6 +89,9 @@ DESC, LIMIT, AND, OR, NOT, AS`
   projection and any `ORDER BY`/`LIMIT`; `COUNT(DISTINCT x)` is rendered and planned as a
   distinct-aware aggregate.
 - Aggregates are not allowed in `WHERE` (semantic error `SEM015`).
+- `HAVING` filters groups after aggregation and may use aggregate calls. It may be used without
+  `GROUP BY`, which treats the whole input as one group. A plain column in `HAVING` must be a
+  grouping column (`SEM018` otherwise).
 - If any aggregate function appears in the select list, every non-aggregated column must
   appear in `GROUP BY` — this is enforced with or without a `GROUP BY` clause (`SEM016`), and
   `SELECT *` cannot be combined with aggregates.
