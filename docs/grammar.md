@@ -95,6 +95,11 @@ ASC, DESC, LIMIT, AND, OR, NOT, AS`
 - If any aggregate function appears in the select list, every non-aggregated column must
   appear in `GROUP BY` — this is enforced with or without a `GROUP BY` clause (`SEM016`), and
   `SELECT *` cannot be combined with aggregates.
-- Only `INNER` joins are cost-optimized. `LEFT`/`RIGHT` joins are **parsed** (the grammar
-  above accepts them) but are **rejected during semantic analysis** with diagnostic
-  `SEM017` ("Outer joins … are not supported"), so the planner only ever sees inner joins.
+- `LEFT JOIN` is supported. The optimizer keeps the left input as the preserved side: a
+  predicate that references only the left input may move into it, but predicates on the right
+  input or spanning both inputs stay above the join, and the `ON` condition is never changed by
+  `WHERE` predicates.
+- `INNER` joins are reordered freely. A `LEFT` join is kept intact as one relation in the join
+  order search.
+- `RIGHT JOIN` is **parsed** but **rejected during semantic analysis** with diagnostic `SEM017`;
+  rewrite it as a `LEFT JOIN` with the tables swapped.
