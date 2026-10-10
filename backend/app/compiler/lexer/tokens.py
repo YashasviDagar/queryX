@@ -23,6 +23,7 @@ class TokenType(str, Enum):
     ON = "ON"
     GROUP = "GROUP"
     BY = "BY"
+    HAVING = "HAVING"
     ORDER = "ORDER"
     ASC = "ASC"
     DESC = "DESC"
@@ -77,6 +78,7 @@ KEYWORDS: dict[str, TokenType] = {
     "ON": TokenType.ON,
     "GROUP": TokenType.GROUP,
     "BY": TokenType.BY,
+    "HAVING": TokenType.HAVING,
     "ORDER": TokenType.ORDER,
     "ASC": TokenType.ASC,
     "DESC": TokenType.DESC,
@@ -101,6 +103,7 @@ _CATEGORY: dict[TokenType, str] = {
     TokenType.ON: "keyword",
     TokenType.GROUP: "keyword",
     TokenType.BY: "keyword",
+    TokenType.HAVING: "keyword",
     TokenType.ORDER: "keyword",
     TokenType.ASC: "keyword",
     TokenType.DESC: "keyword",
