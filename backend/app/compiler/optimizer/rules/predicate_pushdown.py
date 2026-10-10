@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from ...ir import nodes as ir
-from ...ir.expr import combine_and, conjuncts, referenced_sources, render
+from ...ir.expr import combine_and, conjuncts, contains_aggregate, referenced_sources, render
 from ...cost.logical import estimate_ir_rows
 from ..context import OptimizerContext
 from ..records import RuleFinding
@@ -172,7 +172,16 @@ class PredicatePushdown(Rule):
             group_sources: set[str] = set()
             for group in node.group_by:
                 group_sources |= referenced_sources(group, ctx.expr)
-            pushable = [p for p in predicates if referenced_sources(p, ctx) and referenced_sources(p, ctx) <= group_sources]
+            # Only predicates over grouping keys may move below the aggregate. A
+            # predicate containing an aggregate call (e.g. HAVING COUNT(*) > 2)
+            # depends on the groups themselves and must stay above it.
+            pushable = [
+                p
+                for p in predicates
+                if not contains_aggregate(p)
+                and referenced_sources(p, ctx.expr)
+                and referenced_sources(p, ctx.expr) <= group_sources
+            ]
             rest = [p for p in predicates if p not in pushable]
             new_child = (
                 self._push_down(node.children[0], pushable, ctx, findings, origin)
