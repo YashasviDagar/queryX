@@ -28,7 +28,7 @@ students:
 | `col = literal` | `1 / distinct(col)` |
 | `col <> literal` | `1 - 1/distinct(col)` |
 | `col1 = col2` | `1 / max(distinct(col1), distinct(col2))` |
-| `col < / <= / > / >= literal` | `range_selectivity` (default `0.125`, uniform assumption) |
+| `col < / <= / > / >= literal` | With numeric `min`/`max` on the column: the fraction of the `[min, max]` range on the satisfying side of the literal (uniform assumption, literal clamped to the range). Otherwise `range_selectivity` (default `0.125`). |
 | `A AND B` | `s(A) · s(B)` (independence) |
 | `A OR B` | `s(A) + s(B) - s(A)·s(B)` |
 | `NOT A` | `1 - s(A)` |
@@ -88,7 +88,7 @@ For hash joins the **build side** is the smaller child (recorded in the plan as 
 | `sort_comparison_cost` | 0.001 | per-comparison sort |
 | `aggregate_cost` | 0.02 | per-row aggregation |
 | `bytes_per_row` | 120 | memory accounting |
-| `range_selectivity` | 0.125 | default range selectivity |
+| `range_selectivity` | 0.125 | fallback range selectivity, used when a column has no numeric bounds |
 | `default_selectivity` | 0.33 | fallback |
 | `min_rows` | 1 | lower bound on any estimate |
 
