@@ -43,7 +43,7 @@ function layout(root: GraphNode): { nodes: Node[]; edges: Edge[] } {
           target: child.id,
           type: "smoothstep",
           markerEnd: { type: MarkerType.ArrowClosed, width: 14, height: 14 },
-          style: { stroke: "#64748b" },
+          style: { stroke: "#737373" },
         });
         return position;
       });
@@ -105,7 +105,7 @@ export function TreeGraph({ root, height = 460 }: { root: GraphNode; height?: nu
         nodesDraggable={false}
         nodesConnectable={false}
       >
-        <Background color="#94a3b8" gap={20} size={1} />
+        <Background color="#a3a3a3" gap={20} size={1} />
         <Controls showInteractive={false} />
       </ReactFlow>
     </div>

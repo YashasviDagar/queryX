@@ -13,21 +13,21 @@ export function RowsChart({ rows }: { rows: CostComparisonRow[] }) {
     <div className="h-64 w-full">
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={data} margin={{ top: 8, right: 16, bottom: 8, left: 8 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.2} />
-          <XAxis dataKey="name" tick={{ fontSize: 12 }} stroke="#94a3b8" />
+          <CartesianGrid strokeDasharray="3 3" stroke="#262626" opacity={0.2} />
+          <XAxis dataKey="name" tick={{ fontSize: 12 }} stroke="#a3a3a3" />
           <YAxis
             tick={{ fontSize: 12 }}
-            stroke="#94a3b8"
+            stroke="#a3a3a3"
             tickFormatter={(value: number) => formatNumber(value)}
           />
           <Tooltip
             formatter={(value: number) => [formatNumber(value), "estimated rows"]}
             contentStyle={{
-              background: "#0f172a",
-              border: "1px solid #334155",
+              background: "#0a0a0a",
+              border: "1px solid #262626",
               borderRadius: 8,
               fontSize: 12,
-              color: "#e2e8f0",
+              color: "#e5e5e5",
             }}
           />
           <Bar dataKey="rows" radius={[4, 4, 0, 0]}>
