@@ -118,10 +118,10 @@ def test_order_by_select_alias_is_valid(catalog):
     assert result.valid, [e.message for e in result.errors]
 
 
-def test_outer_join_rejected(catalog):
+def test_right_join_rejected(catalog):
     result = _analyze(
         "SELECT s.name, d.name FROM students s "
-        "LEFT JOIN departments d ON s.dept_id = d.id",
+        "RIGHT JOIN departments d ON s.dept_id = d.id",
         catalog,
     )
     assert not result.valid
