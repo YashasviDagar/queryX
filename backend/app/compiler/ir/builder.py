@@ -7,7 +7,7 @@ from ..ast import nodes as ast
 from ..semantic.analyzer import ResolvedColumn, SemanticResult
 from ..semantic.catalog import Catalog
 from . import nodes as ir
-from .expr import ExprContext, columns_in
+from .expr import ExprContext, columns_in, render
 
 
 class IRBuilder:
@@ -106,8 +106,11 @@ class IRBuilder:
         aggregates: list[ast.FunctionCall] = []
         for item in select_columns:
             aggregates.extend(self._collect_aggregates(item))
+        having_condition = query.having.condition if query.having else None
+        aggregates.extend(self._collect_aggregates(having_condition))
+        aggregates = _unique_aggregates(aggregates)
 
-        if aggregates or query.group_by:
+        if aggregates or query.group_by or query.having is not None:
             group_by = query.group_by.columns if query.group_by else []
             group_columns = [self._qualified(c) for c in group_by]
             agg_output = sorted(set(group_columns + [f.name.lower() for f in aggregates]))
@@ -117,6 +120,13 @@ class IRBuilder:
                 children=[root],
                 output_columns=agg_output,
             )
+            # HAVING filters groups after aggregation, so it sits above the Aggregate.
+            if having_condition is not None:
+                root = ir.Filter(
+                    condition=having_condition,
+                    children=[root],
+                    output_columns=list(root.output_columns),
+                )
 
         expressions, names = self._projection(root.output_columns)
         root = ir.Project(
@@ -154,6 +164,18 @@ class IRBuilder:
         if source:
             return f"{source}.{column.name}"
         return column.name
+
+
+def _unique_aggregates(aggregates: list[ast.FunctionCall]) -> list[ast.FunctionCall]:
+    """Drop repeated aggregate calls (e.g. COUNT(*) in both SELECT and HAVING)."""
+    seen: set[str] = set()
+    unique: list[ast.FunctionCall] = []
+    for function in aggregates:
+        key = render(function)
+        if key not in seen:
+            seen.add(key)
+            unique.append(function)
+    return unique
 
 
 def build_ir(query: ast.Query, catalog: Catalog, semantic: SemanticResult) -> ir.IRNode:
