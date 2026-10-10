@@ -117,6 +117,10 @@ class Parser:
         if self._check(TokenType.GROUP):
             group_by = self._parse_group_by()
 
+        having = None
+        if self._check(TokenType.HAVING):
+            having = self._parse_having()
+
         order_by = None
         if self._check(TokenType.ORDER):
             order_by = self._parse_order_by()
@@ -131,6 +135,7 @@ class Parser:
             joins=joins,
             where=where,
             group_by=group_by,
+            having=having,
             order_by=order_by,
             limit=limit,
             line=start.line,
@@ -215,6 +220,10 @@ class Parser:
         while self._match(TokenType.COMMA):
             columns.append(self._parse_column_ref())
         return ast.GroupBy(columns=columns, line=start.line, col=start.column)
+
+    def _parse_having(self) -> ast.Having:
+        start = self._expect(TokenType.HAVING, "HAVING")
+        return ast.Having(condition=self._parse_expression(), line=start.line, col=start.column)
 
     def _parse_order_by(self) -> ast.OrderBy:
         start = self._expect(TokenType.ORDER, "ORDER")
