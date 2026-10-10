@@ -1,0 +1,88 @@
+# queryX statistics & cost configuration.
+#
+# This file is the single source of truth for the logical schema, table/column
+# statistics, available indexes and the constants used by the educational cost
+# model. Edit it (or point SMART_SQL_STATS at another file) to explore how the
+# optimizer reacts to different data distributions.
+
+cost:
+  # Per-tuple CPU cost of moving a row through an operator.
+  cpu_tuple_cost: 0.01
+  # Per-predicate evaluation cost.
+  cpu_operator_cost: 0.0025
+  # Sequential and random page costs (classic PostgreSQL-inspired model).
+  seq_page_cost: 1.0
+  random_page_cost: 4.0
+  # How many rows fit on one page.
+  rows_per_page: 100
+  # Index scan: startup + per-tuple fetch.
+  index_startup_cost: 4.0
+  index_tuple_cost: 0.5
+  # Hash join build/probe per-row costs.
+  hash_build_cost: 0.05
+  hash_probe_cost: 0.02
+  # Merge join per-row cost (excludes sorting).
+  merge_cost: 0.015
+  # Sort: per-row CPU plus comparison cost.
+  sort_cpu_cost: 0.02
+  sort_comparison_cost: 0.001
+  # Aggregate per input row / per group.
+  aggregate_cost: 0.02
+  # Memory accounting (bytes).
+  bytes_per_row: 120
+  # Default selectivity assumptions.
+  equality_selectivity: 0.0        # 0 => derive from column cardinality (1/distinct)
+  range_selectivity: 0.125         # uniform range assumption
+  inequality_selectivity: 0.9
+  default_selectivity: 0.33
+  # Minimum estimated rows for any operator (avoids zero/negative estimates).
+  min_rows: 1
+
+tables:
+  - name: students
+    rows: 100000
+    columns:
+      - {name: id, type: integer, distinct: 100000, nullable: false, indexed: true}
+      - {name: name, type: text, distinct: 95000, nullable: false}
+      - {name: cgpa, type: float, distinct: 500, nullable: true, min: 0, max: 10}
+      - {name: dept_id, type: integer, distinct: 20, nullable: false}
+      - {name: age, type: integer, distinct: 40, nullable: true, min: 17, max: 35}
+      - {name: city, type: text, distinct: 50, nullable: true}
+    indexes:
+      - {name: students_pkey, columns: [id], unique: true}
+      - {name: students_dept_id_idx, columns: [dept_id]}
+      - {name: students_cgpa_idx, columns: [cgpa]}
+
+  - name: departments
+    rows: 20
+    columns:
+      - {name: id, type: integer, distinct: 20, nullable: false, indexed: true}
+      - {name: name, type: text, distinct: 20, nullable: false}
+      - {name: building, type: text, distinct: 8, nullable: true}
+      - {name: head, type: text, distinct: 20, nullable: true}
+    indexes:
+      - {name: departments_pkey, columns: [id], unique: true}
+      - {name: departments_name_idx, columns: [name], unique: true}
+
+  - name: courses
+    rows: 200
+    columns:
+      - {name: id, type: integer, distinct: 200, nullable: false, indexed: true}
+      - {name: title, type: text, distinct: 200, nullable: false}
+      - {name: credits, type: integer, distinct: 6, nullable: false}
+      - {name: dept_id, type: integer, distinct: 20, nullable: false}
+    indexes:
+      - {name: courses_pkey, columns: [id], unique: true}
+      - {name: courses_dept_id_idx, columns: [dept_id]}
+
+  - name: enrollments
+    rows: 500000
+    columns:
+      - {name: id, type: integer, distinct: 500000, nullable: false, indexed: true}
+      - {name: student_id, type: integer, distinct: 100000, nullable: false}
+      - {name: course_id, type: integer, distinct: 200, nullable: false}
+      - {name: grade, type: float, distinct: 100, nullable: true, min: 0, max: 10}
+    indexes:
+      - {name: enrollments_pkey, columns: [id], unique: true}
+      - {name: enrollments_student_id_idx, columns: [student_id]}
+      - {name: enrollments_course_id_idx, columns: [course_id]}
