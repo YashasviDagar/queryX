@@ -122,10 +122,10 @@ def test_examples_endpoint_data(pipeline):
         assert "success" in result
 
 
-def test_left_join_returns_diagnostic_not_crash(pipeline):
+def test_right_join_returns_diagnostic_not_crash(pipeline):
     result = pipeline.compile(
         "SELECT s.name, d.name FROM students s "
-        "LEFT JOIN departments d ON s.dept_id = d.id"
+        "RIGHT JOIN departments d ON s.dept_id = d.id"
     )
     assert result["success"] is False
     assert result["semanticErrors"]
