@@ -346,12 +346,12 @@ class SemanticAnalyzer:
 
         # 2. Join conditions
         for join in query.joins:
-            if join.join_type != "INNER":
+            if join.join_type == "RIGHT":
                 self._err(
                     "SEM017",
-                    f"Outer joins ({join.join_type} JOIN) are not supported by the queryX optimizer.",
+                    "RIGHT JOIN is not supported by the queryX optimizer.",
                     join,
-                    suggestion="Rewrite the query using INNER JOIN, which the cost-based optimizer can reorder and plan.",
+                    suggestion="Rewrite the query as a LEFT JOIN with the two tables swapped.",
                 )
                 continue
             if join.condition is None:
