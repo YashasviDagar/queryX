@@ -157,7 +157,22 @@ class PhysicalPlanGenerator:
                             return index.name, side.name
         return None
 
-    def _build_relation(self, relation: ir.IRNode, scan_mode: str) -> PhysicalNode:
+    def _build_relation(self, relation: ir.IRNode, scan_mode: str, algorithm: str = "HashJoin") -> PhysicalNode:
+        if isinstance(relation, ir.Join):
+            # An outer join is kept intact as one relation; its inputs are built recursively.
+            return PhysicalNode(
+                op=algorithm,
+                details={
+                    "condition": relation.condition,
+                    "conditionText": render(relation.condition),
+                    "joinType": relation.join_type,
+                },
+                children=[
+                    self._build_relation(relation.left, scan_mode, algorithm),
+                    self._build_relation(relation.right, scan_mode, algorithm),
+                ],
+                logical=relation,
+            )
         condition = self._relation_condition(relation)
         scan = self._relation_scan(relation)
         selectivity = self.cardinality.predicate_selectivity(condition) if condition else 1.0
@@ -208,7 +223,7 @@ class PhysicalPlanGenerator:
         algorithm: str,
         scan_mode: str,
     ) -> PhysicalNode:
-        phys = [self._build_relation(r, scan_mode) for r in relations]
+        phys = [self._build_relation(r, scan_mode, algorithm) for r in relations]
         remaining = list(predicates)
         tree = phys[0]
         joined = set(self._relation_sources(relations[0]))
@@ -290,6 +305,8 @@ class PhysicalPlanGenerator:
         return referenced_sources_ir(relation, self.expr)
 
     def _source(self, relation: ir.IRNode) -> str:
+        if isinstance(relation, ir.Join):
+            return f"{relation.join_type.lower()} join ({', '.join(sorted(self._relation_sources(relation)))})"
         scan = self._relation_scan(relation)
         return (scan.alias or scan.table).lower()
 
