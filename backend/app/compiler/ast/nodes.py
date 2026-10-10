@@ -264,6 +264,21 @@ class GroupBy(Node):
 
 
 @dataclass
+class Having(Node):
+    condition: Optional[Node] = None
+
+    def __post_init__(self) -> None:
+        self.kind = "Having"
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "kind": self.kind,
+            "condition": self.condition.to_dict() if self.condition else None,
+            **_pos(self),
+        }
+
+
+@dataclass
 class OrderByItem(Node):
     column: Optional[Node] = None
     direction: str = "ASC"
@@ -313,6 +328,7 @@ class Query(Node):
     joins: list[Join] = field(default_factory=list)
     where: Optional[Where] = None
     group_by: Optional[GroupBy] = None
+    having: Optional[Having] = None
     order_by: Optional[OrderBy] = None
     limit: Optional[Limit] = None
 
@@ -327,6 +343,7 @@ class Query(Node):
             "joins": [j.to_dict() for j in self.joins],
             "where": self.where.to_dict() if self.where else None,
             "groupBy": self.group_by.to_dict() if self.group_by else None,
+            "having": self.having.to_dict() if self.having else None,
             "orderBy": self.order_by.to_dict() if self.order_by else None,
             "limit": self.limit.to_dict() if self.limit else None,
             **_pos(self),
