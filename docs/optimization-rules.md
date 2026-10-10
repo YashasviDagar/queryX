@@ -30,8 +30,10 @@ each conjunct by the scan keys it references:
 - references both inputs → fold into the join condition;
 - otherwise → keep above.
 
-It also pushes through `Project`, `Distinct` and `Sort`, and (for group-key predicates only)
-through `Aggregate`. It never pushes below `Limit` (that would change semantics).
+It also pushes through `Project`, `Distinct` and `Sort`, and through `Aggregate` for predicates
+over grouping keys only. A predicate that contains an aggregate call (for example a `HAVING
+COUNT(*) > 2`) depends on the groups themselves and always stays above the `Aggregate`. It never
+pushes below `Limit` (that would change semantics).
 
 **Record example.**
 
