@@ -1,6 +1,8 @@
 """Statistics, cardinality and cost-model tests."""
 from __future__ import annotations
 
+import pytest
+
 from app.compiler.cost.cardinality import CardinalityEstimator
 from app.compiler.cost.config import CostConfig
 from app.compiler.cost.statistics import load_statistics
@@ -35,11 +37,12 @@ def test_equality_selectivity(stats, cost_config):
 
 
 def test_range_selectivity(stats, cost_config):
+    # cgpa spans 0..10 uniformly, so "> 8.0" keeps 20% of rows.
     _, card, query, _ = _ctx_and_cardinality(
         "SELECT s.id FROM students s WHERE s.cgpa > 8.0", stats, cost_config
     )
     selectivity = card.predicate_selectivity(query.where.condition)
-    assert selectivity == cost_config.range_selectivity
+    assert selectivity == pytest.approx(0.2)
 
 
 def test_and_selectivity_multiplies(stats, cost_config):
@@ -49,7 +52,7 @@ def test_and_selectivity_multiplies(stats, cost_config):
         cost_config,
     )
     selectivity = card.predicate_selectivity(query.where.condition)
-    assert selectivity == cost_config.range_selectivity * (1 / 50)
+    assert selectivity == pytest.approx(0.2 * (1 / 50))
 
 
 def test_join_selectivity(stats, cost_config):
@@ -68,7 +71,7 @@ def test_filter_row_estimate(stats, cost_config):
         "SELECT s.id FROM students s WHERE s.cgpa > 8.0", stats, cost_config
     )
     rows = card.apply_filter(100000, query.where.condition)
-    assert rows == 12500.0
+    assert rows == pytest.approx(20000.0)
 
 
 def test_cost_config_defaults():
