@@ -91,7 +91,10 @@ class CostEstimator:
     def _join_common(self, plan: PhysicalNode) -> tuple[PhysicalNode, PhysicalNode, float]:
         left, right = plan.children
         rows = self.card.join_rows(
-            left.estimated_rows, right.estimated_rows, plan.details.get("condition")
+            left.estimated_rows,
+            right.estimated_rows,
+            plan.details.get("condition"),
+            plan.details.get("joinType", "INNER"),
         )
         return left, right, rows
 
