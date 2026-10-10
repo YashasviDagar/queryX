@@ -125,6 +125,22 @@ def columns_in(node: Optional[ast.Node]) -> list[ast.Column]:
     return found
 
 
+AGGREGATE_NAMES = frozenset({"COUNT", "SUM", "AVG", "MIN", "MAX"})
+
+
+def contains_aggregate(node: Optional[ast.Node]) -> bool:
+    """True when the expression calls an aggregate function anywhere inside it."""
+    if node is None:
+        return False
+    if isinstance(node, ast.FunctionCall):
+        if node.name in AGGREGATE_NAMES:
+            return True
+        return any(contains_aggregate(a) for a in node.args)
+    if isinstance(node, (ast.Comparison, ast.LogicalExpression, ast.BinaryExpression)):
+        return contains_aggregate(node.left) or contains_aggregate(node.right)
+    return False
+
+
 _NO_VALUE = object()
 # Public alias so other stages can test for "not a constant".
 NO_VALUE = _NO_VALUE
