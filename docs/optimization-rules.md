@@ -30,6 +30,11 @@ each conjunct by the scan keys it references:
 - references both inputs → fold into the join condition;
 - otherwise → keep above.
 
+For a `LEFT` join only the first case applies: predicates on the preserved left input move down,
+and anything touching the right input or both inputs stays above the join, because moving it
+would change which left rows are null-extended. Join conditions of `LEFT` joins are never
+extended with `WHERE` predicates for the same reason.
+
 It also pushes through `Project`, `Distinct` and `Sort`, and through `Aggregate` for predicates
 over grouping keys only. A predicate that contains an aggregate call (for example a `HAVING
 COUNT(*) > 2`) depends on the groups themselves and always stays above the `Aggregate`. It never
