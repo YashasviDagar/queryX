@@ -147,7 +147,7 @@ See [`docs/architecture.md`](docs/architecture.md) for details.
 
 ## 9. Grammar
 
-A controlled SQL subset is supported (SELECT/FROM/WHERE/INNER JOIN/GROUP BY/HAVING/ORDER BY/LIMIT,
+A controlled SQL subset is supported (SELECT/FROM/WHERE/INNER and LEFT JOIN/GROUP BY/HAVING/ORDER BY/LIMIT,
 aliases, AND/OR/NOT, arithmetic, comparisons, `COUNT/SUM/AVG/MIN/MAX`). The full EBNF is in
 [`docs/grammar.md`](docs/grammar.md).
 
@@ -182,7 +182,7 @@ position, exposed at `POST /api/parse`.
 
 `app/compiler/semantic` validates the AST against a catalog and **collects all errors**
 instead of failing fast. Checks include: unknown tables/columns, ambiguous columns, duplicate
-aliases, invalid joins, unsupported outer joins (`SEM017`), aggregates in `WHERE`, non-grouped
+aliases, invalid joins, unsupported `RIGHT` joins (`SEM017`), aggregates in `WHERE`, non-grouped
 select columns (enforced with or without a `GROUP BY` clause), `HAVING` predicates over
 ungrouped columns (`SEM018`), unknown functions, and
 type-compatibility of comparisons/arithmetic. Diagnostics carry a code (`SEM0xx`),
@@ -256,8 +256,9 @@ candidate plus a ranked comparison.
 ## 19. Limitations
 
 - Supports a controlled SQL subset (no subqueries, `UNION`, window functions, or CTEs).
-  `LEFT`/`RIGHT` joins are parsed but rejected during semantic analysis with diagnostic
-  `SEM017`; only `INNER` joins are optimized.
+  `RIGHT` joins are parsed but rejected during semantic analysis with diagnostic `SEM017`
+  (rewrite as a `LEFT` join). `LEFT` joins are optimized, but the join-order search only
+  reorders inner joins; an outer join is kept as a single relation.
 - Selectivity uses simple uniformity/independence assumptions (no histograms). `HAVING`
   predicates use the default selectivity, since statistics do not describe aggregate values.
 - Cost constants are illustrative, not calibrated to a real engine.
@@ -271,7 +272,7 @@ candidate plus a ranked comparison.
 - Bushy join trees and dynamic-programming join enumeration (Selinger-style).
 - More rules: join elimination, subquery decorrelation, common subexpression elimination,
   sort elimination, aggregate pushdown.
-- Subqueries, `UNION`, outer joins, window functions.
+- Subqueries, `UNION`, `RIGHT`/`FULL` joins, window functions.
 - Parallel and memory-aware cost modeling.
 - Optional real-execution validation and cost-model calibration against PostgreSQL.
 - Rule-plugin API and an interactive rule editor.
