@@ -24,7 +24,7 @@ def estimate_ir_rows(node: ir.IRNode, estimator: CardinalityEstimator) -> float:
     if isinstance(node, ir.Join):
         left = estimate_ir_rows(node.left, estimator) if node.left else 0.0
         right = estimate_ir_rows(node.right, estimator) if node.right else 0.0
-        return estimator.join_rows(left, right, node.condition)
+        return estimator.join_rows(left, right, node.condition, node.join_type)
     if isinstance(node, ir.Aggregate):
         child = estimate_ir_rows(node.children[0], estimator)
         return estimator.aggregate_groups(child, node.group_by)
