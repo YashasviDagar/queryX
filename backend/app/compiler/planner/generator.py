@@ -87,7 +87,9 @@ class PhysicalPlanGenerator:
                 prefix.append(node)
                 node = node.children[0]
                 continue
-            if isinstance(node, ir.Filter) and node.children and isinstance(node.children[0], ir.Join):
+            # A filter above a join or an aggregate (e.g. HAVING) is a prefix operator;
+            # only a filter directly over a base scan belongs to the join core.
+            if isinstance(node, ir.Filter) and node.children and not isinstance(node.children[0], ir.Scan):
                 prefix.append(node)
                 node = node.children[0]
                 continue
