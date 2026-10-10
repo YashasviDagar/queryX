@@ -50,6 +50,20 @@ EXAMPLES: list[dict[str, str]] = [
         ),
     },
     {
+        "id": "left_join",
+        "title": "LEFT JOIN pushdown boundary",
+        "description": (
+            "Students with no matching department are kept. The cgpa filter moves into the "
+            "preserved students input, while the filter on departments stays above the join."
+        ),
+        "sql": (
+            "SELECT s.name, d.name\n"
+            "FROM students s\n"
+            "LEFT JOIN departments d ON s.dept_id = d.id\n"
+            "WHERE s.cgpa > 8.0 AND d.name = 'CSE';"
+        ),
+    },
+    {
         "id": "constant_folding",
         "title": "Constant folding",
         "description": "The predicate '2 + 3 < 10' folds to TRUE during optimization.",
