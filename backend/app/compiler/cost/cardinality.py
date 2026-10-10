@@ -18,6 +18,9 @@ from .config import CostConfig
 from .statistics import StatsStore
 
 
+_FLIPPED_OPERATORS = {"<": ">", "<=": ">=", ">": "<", ">=": "<="}
+
+
 class CardinalityEstimator:
     def __init__(self, stats: StatsStore, config: CostConfig, ctx: ExprContext) -> None:
         self.stats = stats
@@ -96,9 +99,30 @@ class CardinalityEstimator:
             return base if op == "=" else max(0.0, 1.0 - base)
 
         if op in ("<", "<=", ">", ">="):
-            return self.config.range_selectivity
+            return self._range_selectivity(node, column)
 
         return self.config.default_selectivity
+
+    def _range_selectivity(self, node: ast.Comparison, column: ast.Column) -> float:
+        """Fraction of rows satisfying ``column OP literal``, from the column's min/max.
+
+        Assumes values are spread uniformly between the recorded min and max. Falls back
+        to the configured range selectivity when the bounds or a numeric literal are missing.
+        """
+        fallback = self.config.range_selectivity
+        literal = node.right if node.left is column else node.left
+        if not isinstance(literal, ast.Literal) or literal.literal_type not in ("integer", "float"):
+            return fallback
+        table = self._table_of(column)
+        stats = table.column(column.name) if table else None
+        if stats is None or stats.min_value is None or stats.max_value is None:
+            return fallback
+        low, high = float(stats.min_value), float(stats.max_value)
+        if high <= low:
+            return fallback
+        below = min(1.0, max(0.0, (float(literal.value) - low) / (high - low)))
+        op = node.operator if node.left is column else _FLIPPED_OPERATORS[node.operator]
+        return below if op in ("<", "<=") else 1.0 - below
 
     # -- operator outputs ----------------------------------------------------
     def apply_filter(self, input_rows: float, condition: Optional[ast.Node]) -> float:
