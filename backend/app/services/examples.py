@@ -34,6 +34,22 @@ EXAMPLES: list[dict[str, str]] = [
         ),
     },
     {
+        "id": "having_filter",
+        "title": "HAVING on an aggregate",
+        "description": (
+            "Keeps only departments with more than two students. The HAVING predicate "
+            "references COUNT(*), so it stays above the aggregate instead of being pushed "
+            "into the scan."
+        ),
+        "sql": (
+            "SELECT s.dept_id, COUNT(s.id) AS total\n"
+            "FROM students s\n"
+            "GROUP BY s.dept_id\n"
+            "HAVING COUNT(s.id) > 2\n"
+            "ORDER BY total DESC;"
+        ),
+    },
+    {
         "id": "constant_folding",
         "title": "Constant folding",
         "description": "The predicate '2 + 3 < 10' folds to TRUE during optimization.",
