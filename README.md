@@ -147,7 +147,7 @@ See [`docs/architecture.md`](docs/architecture.md) for details.
 
 ## 9. Grammar
 
-A controlled SQL subset is supported (SELECT/FROM/WHERE/INNER JOIN/GROUP BY/ORDER BY/LIMIT,
+A controlled SQL subset is supported (SELECT/FROM/WHERE/INNER JOIN/GROUP BY/HAVING/ORDER BY/LIMIT,
 aliases, AND/OR/NOT, arithmetic, comparisons, `COUNT/SUM/AVG/MIN/MAX`). The full EBNF is in
 [`docs/grammar.md`](docs/grammar.md).
 
@@ -183,7 +183,8 @@ position, exposed at `POST /api/parse`.
 `app/compiler/semantic` validates the AST against a catalog and **collects all errors**
 instead of failing fast. Checks include: unknown tables/columns, ambiguous columns, duplicate
 aliases, invalid joins, unsupported outer joins (`SEM017`), aggregates in `WHERE`, non-grouped
-select columns (enforced with or without a `GROUP BY` clause), unknown functions, and
+select columns (enforced with or without a `GROUP BY` clause), `HAVING` predicates over
+ungrouped columns (`SEM018`), unknown functions, and
 type-compatibility of comparisons/arithmetic. Diagnostics carry a code (`SEM0xx`),
 message, location and a suggested fix.
 
@@ -254,10 +255,11 @@ candidate plus a ranked comparison.
 
 ## 19. Limitations
 
-- Supports a controlled SQL subset (no subqueries, `UNION`, `HAVING`, window functions, or
-  CTEs). `LEFT`/`RIGHT` joins are parsed but rejected during semantic analysis with
-  diagnostic `SEM017`; only `INNER` joins are optimized.
-- Selectivity uses simple uniformity/independence assumptions (no histograms).
+- Supports a controlled SQL subset (no subqueries, `UNION`, window functions, or CTEs).
+  `LEFT`/`RIGHT` joins are parsed but rejected during semantic analysis with diagnostic
+  `SEM017`; only `INNER` joins are optimized.
+- Selectivity uses simple uniformity/independence assumptions (no histograms). `HAVING`
+  predicates use the default selectivity, since statistics do not describe aggregate values.
 - Cost constants are illustrative, not calibrated to a real engine.
 - Join enumeration is bounded (heuristics for larger join graphs).
 - Statistics are static (no `ANALYZE`/adaptive estimation).
@@ -269,7 +271,7 @@ candidate plus a ranked comparison.
 - Bushy join trees and dynamic-programming join enumeration (Selinger-style).
 - More rules: join elimination, subquery decorrelation, common subexpression elimination,
   sort elimination, aggregate pushdown.
-- `HAVING`, subqueries, `UNION`, outer joins, window functions.
+- Subqueries, `UNION`, outer joins, window functions.
 - Parallel and memory-aware cost modeling.
 - Optional real-execution validation and cost-model calibration against PostgreSQL.
 - Rule-plugin API and an interactive rule editor.
