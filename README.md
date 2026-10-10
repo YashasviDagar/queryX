@@ -239,7 +239,8 @@ Full derivation: [`docs/cost-model.md`](docs/cost-model.md).
 
 - **Access paths:** sequential scan, index scan (when an index covers a predicate column).
 - **Join algorithms:** hash join, nested-loop join, merge join.
-- **Join orders:** as-written and cardinality-sorted.
+- **Join orders:** as-written, cardinality-sorted, and the cheapest left-deep order found by a
+  Selinger-style dynamic-programming search (up to 8 relations).
 
 All candidates are costed; the selector picks the minimum-cost valid plan and returns every
 candidate plus a ranked comparison.
@@ -262,14 +263,15 @@ candidate plus a ranked comparison.
 - Selectivity uses simple uniformity/independence assumptions (no histograms). `HAVING`
   predicates use the default selectivity, since statistics do not describe aggregate values.
 - Cost constants are illustrative, not calibrated to a real engine.
-- Join enumeration is bounded (heuristics for larger join graphs).
+- Join enumeration only covers left-deep trees. Joins over 8 relations fall back to the
+  as-written and cardinality-sorted orders, since the DP search is exponential in relation count.
 - Statistics are static (no `ANALYZE`/adaptive estimation).
 - Index scans model only single-column b-tree indexes.
 
 ## 20. Future scope
 
 - Histograms and multi-dimensional statistics for better selectivity.
-- Bushy join trees and dynamic-programming join enumeration (Selinger-style).
+- Bushy join trees (the current DP search covers left-deep trees only).
 - More rules: join elimination, subquery decorrelation, common subexpression elimination,
   sort elimination, aggregate pushdown.
 - Subqueries, `UNION`, `RIGHT`/`FULL` joins, window functions.
@@ -457,7 +459,7 @@ npm run lint      # tsc --noEmit
 Backend coverage: lexer, parser, AST serialization, semantic analyzer, IR builder, every
 optimization rule, the cost/cardinality model, the planner/selector, the REST routes (via
 FastAPI `TestClient`), diagnostic codes, and full end-to-end queries (valid and invalid).
-123 tests, all passing. Frontend: API client, `QueryProvider`, `PlanCard` and
+153 tests, all passing. Frontend: API client, `QueryProvider`, `PlanCard` and
 `OptimizationCard`. 17 tests, all passing.
 
 CI (`.github/workflows/ci.yml`) runs the backend tests and the frontend lint, test and build
