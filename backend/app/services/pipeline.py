@@ -4,6 +4,7 @@ Wires every stage together:
 
     SQL -> Lexer -> Parser -> AST -> Semantic Analyzer -> IR
         -> Optimizer -> Physical Planner -> Cost Estimator -> Selector -> Explain
+        -> Code Generator -> Peephole Optimizer -> Virtual Machine
 
 The pipeline is stateless with respect to a single request but holds the loaded
 statistics/catalog so repeated requests are cheap.
@@ -13,6 +14,8 @@ from __future__ import annotations
 import time
 from typing import Any, Optional
 
+from ..compiler.codegen import run_codegen
+from ..compiler.codegen.sample_data import SampleDatabase, build_sample_database
 from ..compiler.cost.config import CostConfig, load_cost_config
 from ..compiler.cost.model import CostEstimator
 from ..compiler.cost.statistics import StatsStore, load_statistics
@@ -38,6 +41,7 @@ class QueryPipeline:
         self.stats: StatsStore = load_statistics(self.stats_path)
         self.config: CostConfig = load_cost_config(self.stats_path)
         self.catalog: Catalog = self.stats.to_catalog()
+        self.database: SampleDatabase = build_sample_database(self.stats)
 
     # -- individual stages ---------------------------------------------------
     def lex(self, sql: str) -> dict[str, Any]:
@@ -105,6 +109,7 @@ class QueryPipeline:
             "selectedPlan": None,
             "costComparison": [],
             "explanation": None,
+            "codegen": None,
             "statistics": self.stats.to_dict(),
             "costConfig": self.config.to_dict(),
             "metrics": {},
@@ -170,11 +175,17 @@ class QueryPipeline:
             optimize_result.records, selection, optimize_result.rules_used()
         )
 
+        # 9. Code generation, peephole optimization and execution on the VM
+        codegen_start = time.perf_counter()
+        response["codegen"] = run_codegen(selection, ctx, self.database)
+        codegen_ms = _ms(codegen_start)
+
         response["success"] = True
         response["metrics"] = {
             "stage": "complete",
             "totalMs": _ms(start),
             "planGenerationMs": plan_ms,
+            "codegenMs": codegen_ms,
             "candidateCount": len(selection.evaluations),
             "rulesApplied": optimize_result.rules_applied,
             "rulesUsed": optimize_result.rules_used(),
