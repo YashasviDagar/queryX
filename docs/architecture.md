@@ -27,6 +27,7 @@ frontend that visualizes every stage. PostgreSQL is optional and never used by t
 │    planner    → physical.py, generator.py, selector.py             │
 │    cost       → statistics.py, cardinality.py, model.py, config.py │
 │    explain    → engine.py                                          │
+│    codegen    → generator.py, peephole.py, bytecode.py, vm.py      │
 │                                                                    │
 │  database/    → optional PostgreSQL (disabled by default)          │
 └────────────────────────────────────────────────────────────────────┘
@@ -46,6 +47,9 @@ frontend that visualizes every stage. PostgreSQL is optional and never used by t
 7. **Cost** — `CostEstimator` annotates each candidate with rows/cost/memory/operations.
 8. **Select** — `PlanSelector` marks the minimum-cost plan and ranks all candidates.
 9. **Explain** — `ExplainEngine` produces narratives and the selection reason.
+10. **Generate code** — `run_codegen(selection, expr_ctx, database)` compiles the selected plan
+    to bytecode, applies the peephole pass, executes it on the VM, and runs every other
+    candidate plan as a differential check. See [`codegen.md`](codegen.md).
 
 ## Design principles
 

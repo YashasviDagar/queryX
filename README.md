@@ -3,8 +3,9 @@
 > An academic **Compiler Design** project that implements a complete, from-scratch SQL
 > compiler pipeline: lexing, parsing, AST construction, semantic analysis, relational
 > intermediate representation, rule-based optimization, physical plan generation,
-> cardinality estimation, cost-based plan selection and — the primary novelty —
-> **human-readable explanations for every decision**.
+> cardinality estimation, cost-based plan selection, **code generation to bytecode for its
+> own virtual machine** with peephole optimization, and **human-readable explanations for
+> every decision**.
 
 `queryX` is **not** a SQL editor, a database CRUD app, or a wrapper around PostgreSQL's
 optimizer. The optimizer is implemented independently in Python; PostgreSQL is optional and
@@ -98,6 +99,9 @@ SQL source
   → Cost Model       → estimated cost / memory / operations
   → Plan Selector    → minimum-cost plan (+ all candidates)
   → Explain Engine   → natural-language reasoning
+  → Code Generator   → stack-VM bytecode (produce/consume model)
+  → Peephole Pass    → optimized bytecode + rewrite log
+  → Virtual Machine  → real result rows, verified against every candidate plan
   → Visualized plan  → interactive dashboard
 ```
 
@@ -111,6 +115,18 @@ The novelty is **not** cost-based optimization itself (that is well established)
 is the *educational, explainable integration*: every rule emits a structured record
 (`rule`, `before`, `after`, `reason`, `estimatedImpact`), every candidate plan is costed and
 shown, and the final choice is justified with numbers. The pipeline is visualized end to end.
+
+**queryX also has a real compiler back end.** Optimizers like PostgreSQL's stop at a plan and
+interpret it. queryX compiles the selected plan into bytecode for its own stack-based virtual
+machine, optimizes that bytecode with a peephole pass, and executes it. This is query
+compilation, the approach of research engines such as HyPer and Umbra. Two checks make the
+back end self-verifying on every query:
+
+- the optimized and unoptimized bytecode must return identical results, and
+- every candidate plan, whatever its join order, join algorithm or access path, is compiled
+  and executed, and all must return the same rows (differential testing).
+
+See [`docs/codegen.md`](docs/codegen.md).
 
 ## 7. Compiler design concepts used
 
@@ -128,6 +144,10 @@ shown, and the final choice is justified with numbers. The pipeline is visualize
 | Algebraic rewriting (pushdown, pruning) | `PredicatePushdown`, `ProjectionPruning` |
 | Cost model & cardinality estimation | `compiler/cost` |
 | Plan enumeration & selection | `compiler/planner` |
+| Target code generation | `compiler/codegen/generator.py` (produce/consume, stack code) |
+| Labels, jumps & assembly | `compiler/codegen/bytecode.py` |
+| Peephole optimization | `compiler/codegen/peephole.py` (jump threading, dead code, …) |
+| Virtual machine / runtime | `compiler/codegen/vm.py` |
 | Diagnostics with source locations | `CompilerError` |
 
 ## 8. Architecture
@@ -245,6 +265,14 @@ Full derivation: [`docs/cost-model.md`](docs/cost-model.md).
 All candidates are costed; the selector picks the minimum-cost valid plan and returns every
 candidate plus a ranked comparison.
 
+### Code generation and execution
+
+`app/compiler/codegen` compiles the selected plan to bytecode, runs a peephole pass over it,
+and executes it on a stack-based VM against sample data generated from the statistics. Each
+operator becomes a loop, filters become conditional jumps, and pipeline breakers (hash build,
+sort, aggregate) materialize into VM data structures. See [`docs/codegen.md`](docs/codegen.md)
+for the instruction set, the peephole rules and the verification checks.
+
 ## 18. Evaluation metrics
 
 - Number of optimization rules applied and distinct rules used.
@@ -253,6 +281,9 @@ candidate plus a ranked comparison.
 - Number of candidate plans generated and the cost spread.
 - Selected-plan cost, rows, memory and operations, and savings vs the next-best plan.
 - Plan-generation and total-compile time (milliseconds).
+- Bytecode length before/after peephole optimization, and VM instructions executed with and
+  without it.
+- Agreement of every candidate plan's executed result with the selected plan's.
 
 ## 19. Limitations
 
@@ -269,6 +300,10 @@ candidate plus a ranked comparison.
   as-written and cardinality-sorted orders, since the DP search is exponential in relation count.
 - Statistics are static (no `ANALYZE`/adaptive estimation).
 - Index scans model only single-column b-tree indexes.
+- The VM runs on generated sample data (hundreds of rows per table), not the full-size tables
+  the cost model describes, and it is an interpreter rather than a native-code JIT.
+- The cost model charges for disk I/O while the VM runs in memory, so the plan with the
+  lowest estimated cost is not always the one that executes the fewest VM instructions.
 
 ## 20. Future scope
 
@@ -278,7 +313,8 @@ candidate plus a ranked comparison.
   sort elimination, aggregate pushdown.
 - Subqueries, `UNION`, `RIGHT`/`FULL` joins, window functions.
 - Parallel and memory-aware cost modeling.
-- Optional real-execution validation and cost-model calibration against PostgreSQL.
+- Calibrate the cost model against VM instruction counts and against PostgreSQL.
+- Register allocation and a JIT from bytecode to native code.
 - Rule-plugin API and an interactive rule editor.
 
 ---
@@ -354,7 +390,7 @@ queryX/
 ├── frontend/                      React + TypeScript + Vite + Tailwind
 │   └── src/
 │       ├── components/            Layout, Card, Badge, Tabs, DataTable, TreeGraph, …
-│       ├── pages/                 Editor, Tokens, Ast, IR, Optimization, Plans, Analytics, Schema
+│       ├── pages/                 Editor, Tokens, Ast, IR, Optimization, Plans, Analytics, Bytecode, Schema
 │       ├── features/
 │       │   ├── editor/            SqlEditor, ExamplePicker
 │       │   ├── lexer/             TokenTable
@@ -383,11 +419,12 @@ queryX/
 │   │   │   ├── planner/           physical.py, generator.py, selector.py
 │   │   │   ├── cost/              statistics.py, cardinality.py, model.py, config.py
 │   │   │   ├── explain/           engine.py
+│   │   │   ├── codegen/           generator.py, peephole.py, bytecode.py, vm.py, sample_data.py
 │   │   │   └── config/            statistics.yaml
 │   │   └── database/              connection.py, schema.sql, seed.py, benchmark.py
 │   ├── tests/                     pytest unit + integration tests
 │   └── requirements.txt
-├── docs/                          architecture.md, grammar.md,
+├── docs/                          architecture.md, grammar.md, codegen.md,
 │                                  optimization-rules.md, cost-model.md
 ├── docker-compose.yml             optional PostgreSQL
 └── README.md
@@ -441,7 +478,16 @@ Request body for POST endpoints: `{ "sql": "SELECT ..." }`.
     "optimizationExplanations": [ … ],
     "planSelection": { "selectedPlan": "Plan C", "reason": "…" }
   },
-  "metrics": { "totalMs": 3.6, "planGenerationMs": 0.5, "candidateCount": 6 }
+  "codegen": {
+    "success": true,
+    "plan": "Plan C",
+    "bytecode": [ { "address": 0, "op": "SCAN_OPEN", "args": "r1, departments", "comment": "…" } ],
+    "peephole": { "instructionsBefore": 25, "instructionsAfter": 21, "rules": [ … ], "examples": [ … ] },
+    "execution": { "columns": ["name", "name"], "rows": [ … ], "rowCount": 2, "instructionsExecuted": 2033 },
+    "unoptimizedExecution": { "instructionsExecuted": 2393, "sameResult": true },
+    "planChecks": [ { "name": "Plan A", "status": "match", "rowCount": 2, "instructionsExecuted": 1987 } ]
+  },
+  "metrics": { "totalMs": 3.6, "planGenerationMs": 0.5, "codegenMs": 6.7, "candidateCount": 6 }
 }
 ```
 
@@ -460,8 +506,10 @@ npm run lint      # tsc --noEmit
 
 Backend coverage: lexer, parser, AST serialization, semantic analyzer, IR builder, every
 optimization rule, the cost/cardinality model, the planner/selector, the REST routes (via
-FastAPI `TestClient`), diagnostic codes, and full end-to-end queries (valid and invalid).
-153 tests, all passing. Frontend: API client, `QueryProvider`, `PlanCard` and
+FastAPI `TestClient`), diagnostic codes, full end-to-end queries (valid and invalid), and the
+code generation back end: VM results checked against direct Python evaluation, every peephole
+rule, three-valued logic, and agreement of all candidate plans on every example query.
+196 tests, all passing. Frontend: API client, `QueryProvider`, `PlanCard` and
 `OptimizationCard`. 17 tests, all passing.
 
 CI (`.github/workflows/ci.yml`) runs the backend tests and the frontend lint, test and build
@@ -481,6 +529,8 @@ on every push and pull request.
 10. Compare estimated costs (chart + table).
 11. See the selected plan highlighted.
 12. Read the explanation of why it was selected.
+13. **Bytecode & VM** — see the generated bytecode, the peephole rewrites, the rows the VM
+    returned, and every candidate plan executed with the same result.
 
 ### Seeded example
 
