@@ -14,6 +14,7 @@ const STAGES = [
   { id: "optimization", label: "Optimizer", description: "Rule rewrites" },
   { id: "plans", label: "Planner", description: "Physical plans" },
   { id: "analytics", label: "Analytics", description: "Cost comparison" },
+  { id: "bytecode", label: "Code gen", description: "Bytecode on the VM" },
 ];
 
 export function EditorPage({
@@ -47,6 +48,7 @@ export function EditorPage({
     optimization: result?.optimizationSteps.length ?? 0,
     plans: result?.candidatePlans.length ?? 0,
     analytics: result?.costComparison.length ?? 0,
+    bytecode: result?.codegen?.bytecode?.length ?? 0,
   };
 
   return (

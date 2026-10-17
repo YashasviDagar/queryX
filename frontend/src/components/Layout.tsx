@@ -13,6 +13,7 @@ const ICONS: Record<string, ReactNode> = {
   optimization: <path d="M12 3l2 5h5l-4 3 2 5-5-3-5 3 2-5-4-3h5z" />,
   plans: <path d="M4 4h7v7H4zM13 4h7v7h-7zM8 13v7h8v-7" />,
   analytics: <path d="M4 20V4M4 20h16M8 16v-4M12 16V8M16 16v-7" />,
+  bytecode: <path d="M8 6l-5 6 5 6M16 6l5 6-5 6M14 4l-4 16" />,
   schema: <path d="M12 3c4 0 7 1 7 2s-3 2-7 2-7-1-7-2 3-2 7-2zM5 5v14c0 1 3 2 7 2s7-1 7-2V5M5 12c0 1 3 2 7 2s7-1 7-2" />,
 };
 

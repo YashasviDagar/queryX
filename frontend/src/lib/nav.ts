@@ -12,5 +12,6 @@ export const NAV_ITEMS: NavItem[] = [
   { id: "optimization", label: "Optimization", hint: "Rule-based rewrites" },
   { id: "plans", label: "Query Plans", hint: "Physical plans & costs" },
   { id: "analytics", label: "Analytics", hint: "Cost & impact charts" },
+  { id: "bytecode", label: "Bytecode & VM", hint: "Code generation & execution" },
   { id: "schema", label: "Schema & Stats", hint: "Tables, columns, indexes" },
 ];

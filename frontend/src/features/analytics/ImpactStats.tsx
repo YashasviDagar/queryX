@@ -2,7 +2,7 @@ import { Card } from "../../components/Card";
 import { formatCost, formatNumber, formatPercent } from "../../lib/format";
 import type { CompileResult } from "../../types";
 
-function Stat({ label, value, hint }: { label: string; value: string; hint?: string }) {
+export function Stat({ label, value, hint }: { label: string; value: string; hint?: string }) {
   return (
     <Card bodyClassName="p-4">
       <div className="text-xs font-medium uppercase tracking-wide text-slate-400">{label}</div>

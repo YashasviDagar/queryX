@@ -4,6 +4,7 @@ import { QueryProvider, useQuery } from "./store/QueryProvider";
 import { ThemeProvider } from "./store/ThemeProvider";
 import { AnalyticsPage } from "./pages/AnalyticsPage";
 import { AstPage } from "./pages/AstPage";
+import { BytecodePage } from "./pages/BytecodePage";
 import { EditorPage } from "./pages/EditorPage";
 import { IRPage } from "./pages/IRPage";
 import { OptimizationPage } from "./pages/OptimizationPage";
@@ -32,6 +33,8 @@ function Pages({ active, onNavigate }: { active: string; onNavigate: (id: string
       return <PlansPage />;
     case "analytics":
       return <AnalyticsPage />;
+    case "bytecode":
+      return <BytecodePage />;
     case "schema":
       return <SchemaPage />;
     default:

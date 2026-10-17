@@ -146,6 +146,7 @@ export interface Metrics {
   stage: string;
   totalMs: number;
   planGenerationMs?: number;
+  codegenMs?: number;
   candidateCount?: number;
   rulesApplied?: number;
   rulesUsed?: string[];
@@ -175,6 +176,69 @@ export interface TableStats {
   indexes: IndexStats[];
 }
 
+export interface BytecodeLine {
+  address: number;
+  op: string;
+  args: string;
+  comment: string;
+}
+
+export interface PeepholeRuleSummary {
+  rule: string;
+  applications: number;
+  description: string;
+}
+
+export interface PeepholeExample {
+  rule: string;
+  before: string[];
+  after: string[];
+}
+
+export interface VmExecution {
+  columns: string[];
+  rows: unknown[][];
+  rowCount: number;
+  truncated: boolean;
+  instructionsExecuted: number;
+  opcodeCounts: Record<string, number>;
+  elapsedMs: number;
+}
+
+export interface PlanCheck {
+  id: string;
+  name: string;
+  description: string;
+  estimatedCost: number;
+  selected: boolean;
+  status: "match" | "mismatch" | "skipped" | "error";
+  reason?: string;
+  rowCount?: number;
+  instructionsExecuted?: number;
+  programLength?: number;
+}
+
+export interface Codegen {
+  success: boolean;
+  error?: string;
+  plan?: string;
+  notes?: string[];
+  sampleData?: { table: string; sampleRows: number; realRows: number }[];
+  bytecode?: BytecodeLine[];
+  bytecodeText?: string;
+  unoptimizedBytecodeText?: string;
+  peephole?: {
+    instructionsBefore: number;
+    instructionsAfter: number;
+    rules: PeepholeRuleSummary[];
+    examples: PeepholeExample[];
+  };
+  opcodeReference?: Record<string, string>;
+  execution?: VmExecution;
+  unoptimizedExecution?: { instructionsExecuted: number; elapsedMs: number; sameResult: boolean };
+  planChecks?: PlanCheck[];
+}
+
 export interface CompileResult {
   success: boolean;
   query: string;
@@ -190,6 +254,7 @@ export interface CompileResult {
   selectedPlan: CandidatePlan | null;
   costComparison: CostComparisonRow[];
   explanation: Explanation | null;
+  codegen?: Codegen | null;
   statistics?: { tables: TableStats[] };
   costConfig?: Record<string, number>;
   metrics: Metrics;
