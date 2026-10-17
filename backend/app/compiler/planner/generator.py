@@ -239,6 +239,9 @@ class PhysicalPlanGenerator:
                     "column": column,
                     "selectivity": selectivity,
                     "columns": scan.columns,
+                    # Kept so code generation can recheck the full predicate per row.
+                    "condition": condition,
+                    "conditionText": render(condition),
                 },
                 logical=scan,
             )
