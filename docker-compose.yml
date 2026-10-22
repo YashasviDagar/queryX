@@ -1,37 +1,11 @@
 # queryX compose file.
 #
-# Default (unchanged from before):  docker compose up -d
-#   -> starts only the optional PostgreSQL used for benchmark validation.
-#
-# Full app in containers:           docker compose --profile app up --build
+#   docker compose up --build
 #   -> API on http://localhost:8000, UI on http://localhost:5173
-#
-# The custom optimizer does NOT require PostgreSQL. See README §21.
 services:
-  postgres:
-    image: postgres:16-alpine
-    container_name: queryx-postgres
-    environment:
-      POSTGRES_DB: queryx
-      POSTGRES_USER: queryx
-      POSTGRES_PASSWORD: queryx
-    ports:
-      - "5432:5432"
-    volumes:
-      - queryx_pgdata:/var/lib/postgresql/data
-      - ./backend/app/database/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U queryx"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-
   backend:
     build: ./backend
     container_name: queryx-backend
-    profiles: ["app"]
-    environment:
-      DATABASE_ENABLED: "false"
     ports:
       - "8000:8000"
 
@@ -42,12 +16,8 @@ services:
         # Baked into the static bundle; the browser calls this address.
         VITE_API_URL: http://localhost:8000
     container_name: queryx-frontend
-    profiles: ["app"]
     depends_on:
       - backend
     # Host port 5173 matches the CORS allow-list in backend/app/main.py.
     ports:
       - "5173:80"
-
-volumes:
-  queryx_pgdata:
