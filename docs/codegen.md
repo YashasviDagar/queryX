@@ -83,7 +83,8 @@ patterns until nothing changes. Every rewrite is recorded with the code before a
 
 Jump threading fires on almost every query: a failed filter jumps to a "skip" label whose
 only instruction is the jump back to the loop head, so the filter can jump to the loop head
-directly. On the example queries the pass cuts executed instructions by 11–19%.
+directly. On the example queries the pass cuts executed instructions by up to 19%; the
+GROUP BY examples see no change because their generated code has no such pattern.
 
 One rule is deliberately missing. Rewriting `NOT; JUMP_IF_FALSE L` as `JUMP_IF_TRUE L` looks
 safe but is wrong under SQL's three-valued logic: `NOT NULL` is `NULL`, so the original
