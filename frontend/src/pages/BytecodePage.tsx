@@ -75,6 +75,8 @@ export function BytecodePage() {
   const savedPercent = unoptimized.instructionsExecuted ? (saved / unoptimized.instructionsExecuted) * 100 : 0;
   const verified = checks.filter((check) => check.status === "match").length;
   const mismatches = checks.filter((check) => check.status === "mismatch" || check.status === "error").length;
+  const executedPlans = checks.filter((check) => check.status !== "skipped").length;
+  const skipped = checks.length - executedPlans;
 
   const resultColumns: Column<unknown[]>[] = execution.columns.map((name, index) => ({
     key: `${index}`,
@@ -135,8 +137,12 @@ export function BytecodePage() {
         />
         <Stat
           label="Plans verified"
-          value={`${verified} / ${checks.length}`}
-          hint={mismatches ? `${mismatches} disagree` : "all executed plans return the same rows"}
+          value={`${verified} / ${executedPlans}`}
+          hint={
+            mismatches
+              ? `${mismatches} disagree`
+              : `all executed plans return the same rows${skipped ? `; ${skipped} too slow to run` : ""}`
+          }
         />
       </div>
 

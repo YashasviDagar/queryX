@@ -6,6 +6,7 @@ import { EmptyState, ErrorState, Loading } from "../components/States";
 import { ExamplePicker } from "../features/editor/ExamplePicker";
 import { SqlEditor } from "../features/editor/SqlEditor";
 import { formatNumber, formatPercent } from "../lib/format";
+import { api } from "../services/api";
 import { useQuery } from "../store/QueryProvider";
 
 const STAGES = [
@@ -24,7 +25,9 @@ export function EditorPage({
   autoRun?: boolean;
 }) {
   const { sql, setSql, result, loading, error, examples, run, clear } = useQuery();
-  const [activeExample, setActiveExample] = useState<string | undefined>("join_pushdown");
+  const [activeExample, setActiveExample] = useState<string | undefined>("department_report");
+  const [randomNote, setRandomNote] = useState<string | null>(null);
+  const [randomError, setRandomError] = useState<string | null>(null);
   const didAutoRun = useRef(false);
 
   useEffect(() => {
@@ -34,7 +37,21 @@ export function EditorPage({
     }
   }, [autoRun, run, sql]);
 
+  const handleRandom = async () => {
+    setRandomError(null);
+    try {
+      const generated = await api.random();
+      setActiveExample(undefined);
+      setRandomNote(generated.description);
+      setSql(generated.sql);
+      void run(generated.sql);
+    } catch (err) {
+      setRandomError(err instanceof Error ? err.message : "Could not generate a random query.");
+    }
+  };
+
   const handleExample = (example: { id: string; sql: string }) => {
+    setRandomNote(null);
     setActiveExample(example.id);
     setSql(example.sql);
     void run(example.sql);
@@ -43,6 +60,8 @@ export function EditorPage({
   const codegen = result?.codegen;
   const checks = codegen?.planChecks ?? [];
   const verified = checks.filter((check) => check.status === "match").length;
+  const executedPlans = checks.filter((check) => check.status !== "skipped").length;
+  const skipped = checks.length - executedPlans;
   const unoptimized = codegen?.unoptimizedExecution?.instructionsExecuted ?? 0;
   const executed = codegen?.execution?.instructionsExecuted ?? 0;
   const savedPercent = unoptimized ? ((unoptimized - executed) / unoptimized) * 100 : 0;
@@ -73,6 +92,15 @@ export function EditorPage({
                 </button>
                 <button
                   type="button"
+                  onClick={() => void handleRandom()}
+                  disabled={loading}
+                  title="Generate a new random query that is valid for the grammar and schema"
+                  className="rounded-md border border-blue-500/60 px-3 py-1.5 text-xs font-medium text-blue-600 hover:bg-blue-50 disabled:opacity-60 dark:text-blue-400 dark:hover:bg-blue-500/10"
+                >
+                  Random
+                </button>
+                <button
+                  type="button"
                   onClick={() => run()}
                   disabled={loading}
                   className="rounded-md bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
@@ -83,6 +111,10 @@ export function EditorPage({
             }
           >
             <SqlEditor value={sql} onChange={setSql} onRun={() => run()} />
+            {randomNote && (
+              <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">{randomNote}</p>
+            )}
+            {randomError && <div className="mt-3"><ErrorState message={randomError} /></div>}
             {error && <div className="mt-3"><ErrorState message={error} /></div>}
             {result?.errors?.length ? (
               <div className="mt-3">
@@ -166,9 +198,11 @@ export function EditorPage({
                 <div>
                   <dt className="text-[11px] uppercase tracking-wide text-slate-400">Verified</dt>
                   <dd className="text-xl font-semibold text-emerald-600 dark:text-emerald-400">
-                    {verified}/{checks.length}
+                    {verified}/{executedPlans}
                   </dd>
-                  <dd className="text-[11px] text-slate-400">plans agree</dd>
+                  <dd className="text-[11px] text-slate-400">
+                    plans agree{skipped ? ` (${skipped} skipped)` : ""}
+                  </dd>
                 </div>
               </dl>
               <button

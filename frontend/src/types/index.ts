@@ -260,6 +260,11 @@ export interface CompileResult {
   errors: CompilerDiagnostic[];
 }
 
+export interface RandomQuery {
+  sql: string;
+  description: string;
+}
+
 export interface ExampleQuery {
   id: string;
   title: string;

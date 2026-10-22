@@ -4,6 +4,7 @@ import type {
   ExampleQuery,
   LexResult,
   ParseResult,
+  RandomQuery,
 } from "../types";
 
 const BASE_URL =
@@ -38,4 +39,5 @@ export const api = {
   parse: (sql: string) => post<ParseResult>("/api/parse", sql),
   analyze: (sql: string) => post<AnalyzeResult>("/api/analyze", sql),
   examples: () => get<ExampleQuery[]>("/api/examples"),
+  random: () => get<RandomQuery>("/api/random"),
 };

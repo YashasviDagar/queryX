@@ -24,10 +24,16 @@ interface QueryState {
 
 const QueryContext = createContext<QueryState | undefined>(undefined);
 
-const DEFAULT_SQL = `SELECT s.name, d.name
+const DEFAULT_SQL = `SELECT d.name, COUNT(e.id) AS enrolments, AVG(e.grade) AS avg_grade
 FROM students s
 INNER JOIN departments d ON s.dept_id = d.id
-WHERE s.cgpa > 8.0 AND d.name = 'CSE';`;
+INNER JOIN enrollments e ON e.student_id = s.id
+INNER JOIN courses c ON e.course_id = c.id
+WHERE s.cgpa > 6.0 AND c.credits >= 3 AND s.age < 30
+GROUP BY d.name
+HAVING COUNT(e.id) > 5
+ORDER BY avg_grade DESC
+LIMIT 10;`;
 
 export function QueryProvider({ children }: { children: ReactNode }) {
   const [sql, setSql] = useState(DEFAULT_SQL);
