@@ -14,7 +14,7 @@ from typing import Any
 from ..ir.expr import ExprContext
 from ..planner.physical import PhysicalNode
 from ..planner.selector import SelectionResult
-from .bytecode import OPCODES, assemble
+from .bytecode import assemble
 from .generator import CodeGenerator, CodegenError
 from .peephole import PeepholeOptimizer
 from .sample_data import SampleDatabase
@@ -43,8 +43,6 @@ def run_codegen(selection: SelectionResult, ctx: ExprContext, database: SampleDa
     except (CodegenError, VMError) as error:
         return {"success": False, "error": str(error)}
 
-    used = {i.op for i in optimized.instructions}
-    used_ops = [op for op in OPCODES if op in used]
     return {
         "success": True,
         "plan": selected.name,
@@ -54,7 +52,6 @@ def run_codegen(selection: SelectionResult, ctx: ExprContext, database: SampleDa
         "bytecodeText": optimized.to_text(),
         "unoptimizedBytecodeText": raw.to_text(),
         "peephole": peephole.to_dict(),
-        "opcodeReference": {op: OPCODES[op] for op in used_ops},
         "execution": result.to_dict(),
         "unoptimizedExecution": {
             "instructionsExecuted": unoptimized.steps,

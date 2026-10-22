@@ -233,7 +233,6 @@ export interface Codegen {
     rules: PeepholeRuleSummary[];
     examples: PeepholeExample[];
   };
-  opcodeReference?: Record<string, string>;
   execution?: VmExecution;
   unoptimizedExecution?: { instructionsExecuted: number; elapsedMs: number; sameResult: boolean };
   planChecks?: PlanCheck[];
@@ -288,22 +287,3 @@ export interface AnalyzeResult {
   errors: CompilerDiagnostic[];
 }
 
-export interface StatisticsResponse {
-  tables: TableStats[];
-  costConfig: Record<string, number>;
-}
-
-export interface SchemaResponse {
-  tables: {
-    name: string;
-    rows: number;
-    indexes: string[];
-    columns: {
-      name: string;
-      dataType: string;
-      nullable: boolean;
-      distinct: number;
-      indexed: boolean;
-    }[];
-  }[];
-}

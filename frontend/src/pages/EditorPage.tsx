@@ -5,6 +5,7 @@ import { DiagnosticsList } from "../components/DiagnosticsList";
 import { EmptyState, ErrorState, Loading } from "../components/States";
 import { ExamplePicker } from "../features/editor/ExamplePicker";
 import { SqlEditor } from "../features/editor/SqlEditor";
+import { formatNumber, formatPercent } from "../lib/format";
 import { useQuery } from "../store/QueryProvider";
 
 const STAGES = [
@@ -13,8 +14,7 @@ const STAGES = [
   { id: "ir", label: "IR", description: "Relational algebra" },
   { id: "optimization", label: "Optimizer", description: "Rule rewrites" },
   { id: "plans", label: "Planner", description: "Physical plans" },
-  { id: "analytics", label: "Analytics", description: "Cost comparison" },
-  { id: "bytecode", label: "Code gen", description: "Bytecode on the VM" },
+  { id: "bytecode", label: "Code gen + VM", description: "Bytecode, executed" },
 ];
 
 export function EditorPage({
@@ -41,13 +41,19 @@ export function EditorPage({
     void run(example.sql);
   };
 
+  const codegen = result?.codegen;
+  const checks = codegen?.planChecks ?? [];
+  const verified = checks.filter((check) => check.status === "match").length;
+  const unoptimized = codegen?.unoptimizedExecution?.instructionsExecuted ?? 0;
+  const executed = codegen?.execution?.instructionsExecuted ?? 0;
+  const savedPercent = unoptimized ? ((unoptimized - executed) / unoptimized) * 100 : 0;
+
   const stageCounts: Record<string, number> = {
     tokens: result?.tokens.length ?? 0,
     ast: result?.ast ? 1 : 0,
     ir: result?.relationalIR ? 1 : 0,
     optimization: result?.optimizationSteps.length ?? 0,
     plans: result?.candidatePlans.length ?? 0,
-    analytics: result?.costComparison.length ?? 0,
     bytecode: result?.codegen?.bytecode?.length ?? 0,
   };
 
@@ -92,7 +98,7 @@ export function EditorPage({
             ) : null}
           </Card>
 
-          <Card title="Examples" subtitle="Curated queries that exercise each optimizer rule">
+          <Card title="Examples" subtitle="Pick a query to compile">
             <ExamplePicker examples={examples} onSelect={handleExample} activeId={activeExample} />
           </Card>
         </div>
@@ -138,39 +144,47 @@ export function EditorPage({
             )}
           </Card>
 
-          {result?.success && result.selectedPlan && (
-            <Card title="Selected plan" subtitle="Lowest estimated cost">
-              <div className="flex items-center justify-between">
-                <span className="text-2xl font-semibold text-emerald-600 dark:text-emerald-400">
-                  {result.selectedPlan.name}
-                </span>
-                <Badge tone="green">cost {result.selectedPlan.estimatedCost}</Badge>
-              </div>
-              <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
-                {result.selectedPlan.description}
-              </p>
+          {codegen?.success && codegen.execution && codegen.peephole && (
+            <Card
+              title="Compiled & executed"
+              subtitle={`${codegen.plan} compiled to bytecode and run on the queryX VM`}
+              className="border-blue-500/60 dark:border-blue-500/50"
+            >
+              <dl className="grid grid-cols-3 gap-3 text-center">
+                <div>
+                  <dt className="text-[11px] uppercase tracking-wide text-slate-400">Bytecode</dt>
+                  <dd className="text-xl font-semibold text-blue-600 dark:text-blue-400">
+                    {codegen.peephole.instructionsAfter}
+                  </dd>
+                  <dd className="text-[11px] text-slate-400">instructions</dd>
+                </div>
+                <div>
+                  <dt className="text-[11px] uppercase tracking-wide text-slate-400">Peephole</dt>
+                  <dd className="text-xl font-semibold text-blue-600 dark:text-blue-400">
+                    {formatPercent(savedPercent)}
+                  </dd>
+                  <dd className="text-[11px] text-slate-400">fewer executed</dd>
+                </div>
+                <div>
+                  <dt className="text-[11px] uppercase tracking-wide text-slate-400">Verified</dt>
+                  <dd className="text-xl font-semibold text-emerald-600 dark:text-emerald-400">
+                    {verified}/{checks.length}
+                  </dd>
+                  <dd className="text-[11px] text-slate-400">plans agree</dd>
+                </div>
+              </dl>
               <button
                 type="button"
-                onClick={() => onNavigate("plans")}
+                onClick={() => onNavigate("bytecode")}
                 className="mt-3 text-xs font-medium text-blue-600 hover:underline dark:text-blue-400"
               >
-                View all candidate plans →
+                See the bytecode and {formatNumber(codegen.execution.rowCount)} result rows →
               </button>
             </Card>
           )}
         </div>
       </div>
 
-      {result?.success && result.explanation && (
-        <Card title="Explainability summary" subtitle="Transparent reasoning for the chosen plan">
-          <p className="text-sm text-slate-700 dark:text-slate-200">
-            {result.explanation.summary}
-          </p>
-          <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
-            {result.explanation.planSelection.reason}
-          </p>
-        </Card>
-      )}
     </div>
   );
 }

@@ -44,7 +44,7 @@ class Instr:
 
 Item = Union[Instr, Label]
 
-# Opcodes grouped by role; documented for the dashboard and the README.
+# Instruction set reference: every opcode the generator emits and the VM executes.
 OPCODES: dict[str, str] = {
     "SCAN_OPEN": "Open a sequential cursor over a table",
     "INDEX_OPEN": "Open a cursor over the rows an index range selects",
