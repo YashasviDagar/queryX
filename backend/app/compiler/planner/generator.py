@@ -208,6 +208,18 @@ class PhysicalPlanGenerator:
         return None
 
     def _build_relation(self, relation: ir.IRNode, scan_mode: str, algorithm: str = "HashJoin") -> PhysicalNode:
+        if _filters_a_join(relation):
+            # A WHERE predicate on the nullable side of a LEFT join stays above that join.
+            return PhysicalNode(
+                op="Filter",
+                details={
+                    "condition": relation.condition,
+                    "conditionText": render(relation.condition),
+                    "selectivity": self.cardinality.predicate_selectivity(relation.condition),
+                },
+                children=[self._build_relation(relation.children[0], scan_mode, algorithm)],
+                logical=relation,
+            )
         if isinstance(relation, ir.Join):
             # An outer join is kept intact as one relation; its inputs are built recursively.
             return PhysicalNode(
@@ -358,6 +370,8 @@ class PhysicalPlanGenerator:
         return referenced_sources_ir(relation, self.expr)
 
     def _source(self, relation: ir.IRNode) -> str:
+        if _filters_a_join(relation):
+            return self._source(relation.children[0])
         if isinstance(relation, ir.Join):
             return f"{relation.join_type.lower()} join ({', '.join(sorted(self._relation_sources(relation)))})"
         scan = self._relation_scan(relation)
@@ -401,3 +415,7 @@ class PhysicalPlanGenerator:
             candidate.name = f"Plan {letter}"
             candidate.plan_id = f"plan_{index + 1}"
         return unique
+
+
+def _filters_a_join(relation: ir.IRNode) -> bool:
+    return isinstance(relation, ir.Filter) and bool(relation.children) and isinstance(relation.children[0], ir.Join)
