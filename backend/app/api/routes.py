@@ -5,6 +5,9 @@ logic lives in the ``compiler`` package.
 """
 from __future__ import annotations
 
+import random
+from typing import Optional
+
 from fastapi import APIRouter, Depends
 
 from ..models.requests import SqlRequest
@@ -18,6 +21,7 @@ from ..models.responses import (
 )
 from ..services.examples import get_examples
 from ..services.pipeline import QueryPipeline
+from ..services.random_query import random_query
 from .deps import get_pipeline
 
 router = APIRouter()
@@ -84,3 +88,9 @@ def statistics(pipeline: QueryPipeline = Depends(get_pipeline)) -> StatisticsRes
 def examples() -> list[ExampleOut]:
     """Return curated example queries."""
     return [ExampleOut(**example) for example in get_examples()]
+
+
+@router.get("/random", tags=["metadata"])
+def random_sql(seed: Optional[int] = None, pipeline: QueryPipeline = Depends(get_pipeline)) -> dict:
+    """Generate a random query that is valid for the grammar and schema."""
+    return random_query(pipeline.database, random.Random(seed))
