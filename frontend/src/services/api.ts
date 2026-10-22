@@ -4,8 +4,6 @@ import type {
   ExampleQuery,
   LexResult,
   ParseResult,
-  SchemaResponse,
-  StatisticsResponse,
 } from "../types";
 
 const BASE_URL =
@@ -40,6 +38,4 @@ export const api = {
   parse: (sql: string) => post<ParseResult>("/api/parse", sql),
   analyze: (sql: string) => post<AnalyzeResult>("/api/analyze", sql),
   examples: () => get<ExampleQuery[]>("/api/examples"),
-  schema: () => get<SchemaResponse>("/api/schema"),
-  statistics: () => get<StatisticsResponse>("/api/statistics"),
 };

@@ -5,7 +5,7 @@ import { CodeBlock } from "../components/CodeBlock";
 import { DataTable, type Column } from "../components/DataTable";
 import { EmptyState, ErrorState } from "../components/States";
 import { Tabs } from "../components/Tabs";
-import { Stat } from "../features/analytics/ImpactStats";
+import { Stat } from "../components/Stat";
 import { cn, formatCost, formatNumber, formatPercent } from "../lib/format";
 import { useQuery } from "../store/QueryProvider";
 import type { BytecodeLine, PlanCheck } from "../types";
@@ -203,17 +203,6 @@ export function BytecodePage() {
                 ))}
               </div>
             )}
-          </Card>
-
-          <Card title="Opcodes used" subtitle="Instruction set reference">
-            <dl className="space-y-1 text-xs">
-              {Object.entries(codegen.opcodeReference ?? {}).map(([op, description]) => (
-                <div key={op} className="flex gap-2">
-                  <dt className={cn("w-28 shrink-0 font-mono font-semibold", opClass(op))}>{op}</dt>
-                  <dd className="text-slate-500 dark:text-slate-400">{description}</dd>
-                </div>
-              ))}
-            </dl>
           </Card>
         </div>
       </div>

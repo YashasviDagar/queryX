@@ -50,7 +50,7 @@ describe("api client", () => {
   it("throws with status on a non-OK GET", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("", { status: 500 })));
 
-    await expect(api.schema()).rejects.toThrow("Request failed (500)");
+    await expect(api.examples()).rejects.toThrow("Request failed (500)");
     vi.unstubAllGlobals();
   });
 });
