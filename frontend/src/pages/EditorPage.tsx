@@ -12,7 +12,6 @@ const STAGES = [
   { id: "tokens", label: "Lexer", description: "Token stream" },
   { id: "ast", label: "Parser", description: "Abstract syntax tree" },
   { id: "ir", label: "IR", description: "Relational algebra" },
-  { id: "optimization", label: "Optimizer", description: "Rule rewrites" },
   { id: "plans", label: "Planner", description: "Physical plans" },
   { id: "bytecode", label: "Code gen + VM", description: "Bytecode, executed" },
 ];
@@ -52,7 +51,6 @@ export function EditorPage({
     tokens: result?.tokens.length ?? 0,
     ast: result?.ast ? 1 : 0,
     ir: result?.relationalIR ? 1 : 0,
-    optimization: result?.optimizationSteps.length ?? 0,
     plans: result?.candidatePlans.length ?? 0,
     bytecode: result?.codegen?.bytecode?.length ?? 0,
   };

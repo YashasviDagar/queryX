@@ -6,7 +6,6 @@ import { AstPage } from "./pages/AstPage";
 import { BytecodePage } from "./pages/BytecodePage";
 import { EditorPage } from "./pages/EditorPage";
 import { IRPage } from "./pages/IRPage";
-import { OptimizationPage } from "./pages/OptimizationPage";
 import { PlansPage } from "./pages/PlansPage";
 import { TokensPage } from "./pages/TokensPage";
 
@@ -25,8 +24,6 @@ function Pages({ active, onNavigate }: { active: string; onNavigate: (id: string
       return <AstPage />;
     case "ir":
       return <IRPage />;
-    case "optimization":
-      return <OptimizationPage />;
     case "plans":
       return <PlansPage />;
     case "bytecode":

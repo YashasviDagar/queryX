@@ -11,6 +11,5 @@ export const NAV_ITEMS: NavItem[] = [
   { id: "tokens", label: "Tokens", hint: "Lexer output" },
   { id: "ast", label: "AST", hint: "Abstract syntax tree" },
   { id: "ir", label: "Relational IR", hint: "Logical algebra" },
-  { id: "optimization", label: "Optimization", hint: "Rule-based rewrites" },
   { id: "plans", label: "Query Plans", hint: "Physical plans & costs" },
 ];

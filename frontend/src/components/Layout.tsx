@@ -10,7 +10,6 @@ const ICONS: Record<string, ReactNode> = {
   tokens: <path d="M4 6h16M4 12h10M4 18h7" />,
   ast: <path d="M12 3v6M12 9l-6 6M12 9l6 6M6 15v6M18 15v6" />,
   ir: <path d="M12 3v5M12 8l-5 5M12 8l5 5M7 13v5M17 13v5M4 20h6M14 20h6" />,
-  optimization: <path d="M12 3l2 5h5l-4 3 2 5-5-3-5 3 2-5-4-3h5z" />,
   plans: <path d="M4 4h7v7H4zM13 4h7v7h-7zM8 13v7h8v-7" />,
   bytecode: <path d="M8 6l-5 6 5 6M16 6l5 6-5 6M14 4l-4 16" />,
 };
@@ -150,8 +149,7 @@ export function Layout({
           <div className="flex items-center gap-2">
             {result?.success && (
               <Badge tone="green">
-                {result.metrics?.candidateCount ?? 0} plans ·{" "}
-                {result.metrics?.rulesApplied ?? 0} rewrites
+                {result.metrics?.candidateCount ?? 0} plans
               </Badge>
             )}
             {result && !result.success && <Badge tone="red">errors</Badge>}
