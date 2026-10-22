@@ -3,8 +3,7 @@
 `queryX` uses a small, fully transparent cost model inspired by classical cost-based
 optimizers. Its purpose is **comparison and explanation**, not predicting real wall-clock
 execution time. All constants are configurable in
-`backend/app/compiler/config/statistics.yaml` under the `cost:` key and are displayed in the
-Schema & Stats page.
+`backend/app/compiler/config/statistics.yaml` under the `cost:` key.
 
 ## Statistics
 

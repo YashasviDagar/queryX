@@ -8,8 +8,8 @@
 > every decision**.
 
 `queryX` is **not** a SQL editor, a database CRUD app, or a wrapper around PostgreSQL's
-optimizer. The optimizer is implemented independently in Python; PostgreSQL is optional and
-used only for benchmark validation.
+optimizer. The optimizer, code generator and virtual machine are implemented independently in
+Python; no database is needed to run a query.
 
 ---
 
@@ -154,12 +154,12 @@ See [`docs/codegen.md`](docs/codegen.md).
 
 ```
 ┌──────────────────────────────── Frontend (React + TypeScript + Vite) ────────────────────────────────┐
-│  Editor · Tokens · AST (React Flow) · IR · Optimization timeline · Plans · Analytics (Recharts) · Schema │
+│  Editor · Bytecode & VM · Tokens · AST (React Flow) · IR · Optimization timeline · Plans              │
 └───────────────────────────────────────────────┬──────────────────────────────────────────────────────┘
                                                  │ REST /api/*
 ┌──────────────────────────────── Backend (FastAPI) ────────────────────────────────────────────────────┐
-│ api → services.pipeline → compiler.{lexer,parser,ast,semantic,ir,optimizer,planner,cost,explain}      │
-│ database (optional, PostgreSQL)                                                                       │
+│ api → services.pipeline → compiler.{lexer,parser,ast,semantic,ir,optimizer,planner,cost,explain,     │
+│                                     codegen}                                                          │
 └───────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -313,7 +313,7 @@ for the instruction set, the peephole rules and the verification checks.
   sort elimination, aggregate pushdown.
 - Subqueries, `UNION`, `RIGHT`/`FULL` joins, window functions.
 - Parallel and memory-aware cost modeling.
-- Calibrate the cost model against VM instruction counts and against PostgreSQL.
+- Calibrate the cost model against VM instruction counts.
 - Register allocation and a JIT from bytecode to native code.
 - Rule-plugin API and an interactive rule editor.
 
@@ -325,7 +325,6 @@ for the instruction set, the peephole rules and the verification checks.
 
 - **Python 3.10+** (tested on 3.12)
 - **Node.js 18+** (tested on Node 24)
-- PostgreSQL is **optional** (only for benchmark validation)
 
 ### Backend
 
@@ -360,26 +359,13 @@ Open http://localhost:5173. The app targets `http://localhost:8000` by default; 
 VITE_API_URL=http://localhost:8000
 ```
 
-### Optional PostgreSQL (benchmark validation only)
-
-```bash
-docker compose up -d
-cd backend
-# set DATABASE_ENABLED=true in .env (see .env.example)
-python -m app.database.seed
-python -m app.database.benchmark
-```
-
-The custom optimizer never calls PostgreSQL; this is only for comparing against a real engine.
-
 ### Full app with Docker (optional)
 
 ```bash
-docker compose --profile app up --build
+docker compose up --build
 ```
 
-Serves the API on http://localhost:8000 and the UI on http://localhost:5173. Plain
-`docker compose up -d` still starts only PostgreSQL.
+Serves the API on http://localhost:8000 and the UI on http://localhost:5173.
 
 ---
 
@@ -390,15 +376,14 @@ queryX/
 ├── frontend/                      React + TypeScript + Vite + Tailwind
 │   └── src/
 │       ├── components/            Layout, Card, Badge, Tabs, DataTable, TreeGraph, …
-│       ├── pages/                 Editor, Tokens, Ast, IR, Optimization, Plans, Analytics, Bytecode, Schema
+│       ├── pages/                 Editor, Bytecode, Tokens, Ast, IR, Optimization, Plans
 │       ├── features/
 │       │   ├── editor/            SqlEditor, ExamplePicker
 │       │   ├── lexer/             TokenTable
 │       │   ├── ast/               AstGraph (React Flow)
 │       │   ├── optimizer/         OptimizationTimeline, OptimizationCard
 │       │   ├── plans/             PlanTree, PlanCard
-│       │   ├── explainability/    ExplanationPanel
-│       │   └── analytics/         CostChart, RowsChart, ImpactStats
+│       │   └── explainability/    ExplanationPanel
 │       ├── services/api.ts        Typed API client
 │       ├── store/                 Query + Theme providers
 │       ├── types/                 Shared TypeScript models
@@ -421,12 +406,11 @@ queryX/
 │   │   │   ├── explain/           engine.py
 │   │   │   ├── codegen/           generator.py, peephole.py, bytecode.py, vm.py, sample_data.py
 │   │   │   └── config/            statistics.yaml
-│   │   └── database/              connection.py, schema.sql, seed.py, benchmark.py
 │   ├── tests/                     pytest unit + integration tests
 │   └── requirements.txt
 ├── docs/                          architecture.md, grammar.md, codegen.md,
 │                                  optimization-rules.md, cost-model.md
-├── docker-compose.yml             optional PostgreSQL
+├── docker-compose.yml             optional: run the app in containers
 └── README.md
 ```
 
@@ -509,7 +493,7 @@ optimization rule, the cost/cardinality model, the planner/selector, the REST ro
 FastAPI `TestClient`), diagnostic codes, full end-to-end queries (valid and invalid), and the
 code generation back end: VM results checked against direct Python evaluation, every peephole
 rule, three-valued logic, and agreement of all candidate plans on every example query.
-196 tests, all passing. Frontend: API client, `QueryProvider`, `PlanCard` and
+186 tests, all passing. Frontend: API client, `QueryProvider`, `PlanCard` and
 `OptimizationCard`. 17 tests, all passing.
 
 CI (`.github/workflows/ci.yml`) runs the backend tests and the frontend lint, test and build
@@ -517,20 +501,13 @@ on every push and pull request.
 
 ## 25. Final demo flow
 
-1. Enter the SQL query (pre-loaded with the flagship example).
-2. **Tokens** — inspect the lexer output with positions.
-3. **AST** — explore the syntax tree.
-4. **Semantic** — diagnostics shown inline in the editor.
-5. **Relational IR** — view the logical plan.
-6. Click **Run & Optimize**.
-7. **Optimization** — see each rule with before/after and estimated impact.
-8. Compare estimated rows before/after each rule.
-9. **Plans** — inspect multiple physical plans.
-10. Compare estimated costs (chart + table).
-11. See the selected plan highlighted.
-12. Read the explanation of why it was selected.
-13. **Bytecode & VM** — see the generated bytecode, the peephole rewrites, the rows the VM
-    returned, and every candidate plan executed with the same result.
+1. Enter the SQL query (pre-loaded with the flagship example) and click **Run & Optimize**.
+2. The **Compiled & executed** card on the editor shows the bytecode size, the peephole
+   savings and how many plans were verified.
+3. **Bytecode & VM** — the generated bytecode before and after peephole optimization, each
+   rewrite, the rows the VM returned, and every candidate plan executed with the same result.
+4. For the front end, step through **Tokens**, **AST**, **Relational IR**, **Optimization**
+   and **Query Plans**.
 
 ### Seeded example
 

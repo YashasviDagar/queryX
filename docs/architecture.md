@@ -1,14 +1,14 @@
 # Architecture
 
 `queryX` is split into a stateless FastAPI backend that owns the compiler pipeline and a React
-frontend that visualizes every stage. PostgreSQL is optional and never used by the optimizer.
+frontend that visualizes every stage. No database is needed: queries run on the built-in VM.
 
 ## High-level view
 
 ```
 ┌──────────────────────────── Frontend ────────────────────────────┐
 │  React + TypeScript + Vite + Tailwind                             │
-│  React Flow (AST / IR / plan graphs) · Recharts (cost analytics)  │
+│  React Flow (AST / IR / plan graphs)                              │
 │                                                                    │
 │  store/QueryProvider ──> services/api.ts ──> POST /api/optimize    │
 └───────────────────────────────┬────────────────────────────────────┘
@@ -29,7 +29,6 @@ frontend that visualizes every stage. PostgreSQL is optional and never used by t
 │    explain    → engine.py                                          │
 │    codegen    → generator.py, peephole.py, bytecode.py, vm.py      │
 │                                                                    │
-│  database/    → optional PostgreSQL (disabled by default)          │
 └────────────────────────────────────────────────────────────────────┘
 ```
 
