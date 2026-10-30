@@ -69,7 +69,7 @@ class PeepholeResult:
             for rule, count in counts.items()
         ]
 
-    def to_dict(self, max_examples: int = 12) -> dict[str, Any]:
+    def to_dict(self, max_examples: int = 100) -> dict[str, Any]:
         return {
             "instructionsBefore": self.instructions_before,
             "instructionsAfter": self.instructions_after,

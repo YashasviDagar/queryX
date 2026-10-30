@@ -50,6 +50,7 @@ def run_codegen(selection: SelectionResult, ctx: ExprContext, database: SampleDa
         "sampleData": database.summary(),
         "bytecode": optimized.disassemble(),
         "bytecodeText": optimized.to_text(),
+        "unoptimizedBytecode": raw.disassemble(),
         "unoptimizedBytecodeText": raw.to_text(),
         "peephole": peephole.to_dict(),
         "execution": result.to_dict(),

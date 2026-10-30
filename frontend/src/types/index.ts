@@ -226,6 +226,7 @@ export interface Codegen {
   sampleData?: { table: string; sampleRows: number; realRows: number }[];
   bytecode?: BytecodeLine[];
   bytecodeText?: string;
+  unoptimizedBytecode?: BytecodeLine[];
   unoptimizedBytecodeText?: string;
   peephole?: {
     instructionsBefore: number;
