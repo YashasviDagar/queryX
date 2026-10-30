@@ -37,6 +37,15 @@ EXAMPLES: list[dict[str, str]] = [
         ),
     },
     {
+        "id": "peephole_showcase",
+        "title": "Peephole showcase",
+        "description": (
+            "A single-table filter where peephole optimization removes the most work: it shrinks "
+            "the bytecode and the VM runs about a quarter fewer instructions."
+        ),
+        "sql": "SELECT s.age, s.city, s.cgpa FROM students s WHERE s.cgpa < 6.0;",
+    },
+    {
         "id": "join_pushdown",
         "title": "Join + predicate pushdown",
         "description": (
