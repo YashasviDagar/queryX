@@ -364,14 +364,6 @@ Open http://localhost:5173. The app targets `http://localhost:8000` by default; 
 VITE_API_URL=http://localhost:8000
 ```
 
-### Full app with Docker (optional)
-
-```bash
-docker compose up --build
-```
-
-Serves the API on http://localhost:8000 and the UI on http://localhost:5173.
-
 ---
 
 ## 22. Project structure
@@ -413,7 +405,6 @@ queryX/
 │   └── requirements.txt
 ├── docs/                          architecture.md, grammar.md, codegen.md,
 │                                  optimization-rules.md, cost-model.md
-├── docker-compose.yml             optional: run the app in containers
 └── README.md
 ```
 
