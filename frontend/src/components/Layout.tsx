@@ -33,7 +33,9 @@ function NavIcon({ id }: { id: string }) {
 function Brand() {
   return (
     <div>
-      <div className="text-sm font-semibold leading-tight">queryX</div>
+      <div className="text-lg font-bold leading-tight tracking-tight">
+        query<span className="text-blue-600 dark:text-blue-400">X</span>
+      </div>
       <div className="text-[11px] text-slate-500 dark:text-slate-400">Explainable SQL Optimizer</div>
     </div>
   );

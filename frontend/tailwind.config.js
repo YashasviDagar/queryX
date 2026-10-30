@@ -7,11 +7,11 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Pure neutral grays replace the blue-tinted slate; cyan replaces blue as the accent.
+        // Neutral grays replace the blue-tinted slate; every `blue-*` class renders as rose.
         slate: colors.neutral,
-        blue: colors.cyan,
+        blue: colors.rose,
         surface: {
-          DEFAULT: "#000000",
+          DEFAULT: "#12151c",
           light: "#f8fafc",
         },
       },
