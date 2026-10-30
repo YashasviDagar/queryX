@@ -2,7 +2,9 @@ import { useMemo } from "react";
 import ReactFlow, {
   Background,
   Controls,
+  Handle,
   MarkerType,
+  Position,
   type Edge,
   type Node,
   type NodeProps,
@@ -43,7 +45,7 @@ function layout(root: GraphNode): { nodes: Node[]; edges: Edge[] } {
           target: child.id,
           type: "smoothstep",
           markerEnd: { type: MarkerType.ArrowClosed, width: 14, height: 14 },
-          style: { stroke: "#737373" },
+          style: { stroke: "#8b8b8b", strokeWidth: 1.5 },
         });
         return position;
       });
@@ -63,6 +65,9 @@ function layout(root: GraphNode): { nodes: Node[]; edges: Edge[] } {
   return { nodes, edges };
 }
 
+// Edges attach to handles; they are invisible because the graph is read-only.
+const HIDDEN_HANDLE = { opacity: 0, pointerEvents: "none" as const };
+
 function QueryXNode({ data }: NodeProps<{ label: string; sublabel?: string; tone?: string }>) {
   const tone = (data.tone as ReturnType<typeof opTone>) ?? "default";
   return (
@@ -77,6 +82,7 @@ function QueryXNode({ data }: NodeProps<{ label: string; sublabel?: string; tone
         tone === "default" && "border-slate-300 bg-white dark:border-slate-700 dark:bg-slate-900",
       )}
     >
+      <Handle type="target" position={Position.Top} style={HIDDEN_HANDLE} isConnectable={false} />
       <div className="truncate font-mono text-xs font-semibold text-slate-800 dark:text-slate-100">
         {data.label}
       </div>
@@ -85,6 +91,7 @@ function QueryXNode({ data }: NodeProps<{ label: string; sublabel?: string; tone
           {data.sublabel}
         </div>
       )}
+      <Handle type="source" position={Position.Bottom} style={HIDDEN_HANDLE} isConnectable={false} />
     </div>
   );
 }
